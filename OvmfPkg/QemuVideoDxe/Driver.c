@@ -78,6 +78,12 @@ QEMU_VIDEO_CARD gQemuVideoCardList[] = {
         QEMU_VIDEO_VMWARE_SVGA,
         L"QEMU VMWare SVGA"
     },{
+        PCI_CLASS_DISPLAY_VGA,
+        0x8086,
+        0x0412,
+        QEMU_VIDEO_INTEL_HDG,
+        L"Intel HD Graphics"
+    },{
         0 /* end of list */
     }
 };
@@ -161,7 +167,7 @@ QemuVideoControllerDriverSupported (
   }
   Card = QemuVideoDetect(Pci.Hdr.ClassCode[1], Pci.Hdr.VendorId, Pci.Hdr.DeviceId);
   if (Card != NULL) {
-    DEBUG ((EFI_D_INFO, "QemuVideo: %s detected\n", Card->Name));
+    DebugPrint(0, "QemuVideo: %s detected\n", Card->Name);
     Status = EFI_SUCCESS;
   }
 
@@ -211,6 +217,7 @@ QemuVideoControllerDriverStart (
   EFI_PCI_IO_PROTOCOL               *ChildPciIo;
 
   OldTpl = gBS->RaiseTPL (TPL_CALLBACK);
+DebugPrint(0, "QemuVideoControllerDriverStart\n");
 
   //
   // Allocate Private context data for GOP inteface.
@@ -237,6 +244,7 @@ QemuVideoControllerDriverStart (
                   Controller,
                   EFI_OPEN_PROTOCOL_BY_DRIVER
                   );
+DebugPrint(0, "OpenProtocol %d\n", Status);
   if (EFI_ERROR (Status)) {
     goto FreePrivate;
   }
@@ -251,6 +259,7 @@ QemuVideoControllerDriverStart (
                         sizeof (Pci) / sizeof (UINT32),
                         &Pci
                         );
+DebugPrint(0, "Read configuration %d\n", Status);
   if (EFI_ERROR (Status)) {
     goto ClosePciIo;
   }
@@ -259,6 +268,7 @@ QemuVideoControllerDriverStart (
   // Determine card variant.
   //
   Card = QemuVideoDetect(Pci.Hdr.ClassCode[1], Pci.Hdr.VendorId, Pci.Hdr.DeviceId);
+DebugPrint(0, "Video Detect %p\n", Card);
   if (Card == NULL) {
     Status = EFI_DEVICE_ERROR;
     goto ClosePciIo;
@@ -272,6 +282,7 @@ QemuVideoControllerDriverStart (
   //
   IsQxl = (BOOLEAN)(Card->Variant == QEMU_VIDEO_BOCHS);
 
+DebugPrint(0, "IsQXL %d\n", IsQxl);
   //
   // Save original PCI attributes
   //
@@ -282,6 +293,7 @@ QemuVideoControllerDriverStart (
                     &Private->OriginalPciAttributes
                     );
 
+DebugPrint(0, "Read Attributes %d\n", Status);
   if (EFI_ERROR (Status)) {
     goto ClosePciIo;
   }
@@ -295,6 +307,7 @@ QemuVideoControllerDriverStart (
                             EFI_PCI_DEVICE_ENABLE | EFI_PCI_IO_ATTRIBUTE_VGA_MEMORY | EFI_PCI_IO_ATTRIBUTE_VGA_IO,
                             NULL
                             );
+DebugPrint(0, "Set Attributes %d\n", Status);
   if (EFI_ERROR (Status)) {
     goto ClosePciIo;
   }
@@ -377,6 +390,7 @@ QemuVideoControllerDriverStart (
     }
 
     if (SvgaIdRead != TargetId) {
+DebugPrint(0, "Error SvgaIdRead %d\n", Status);
       DEBUG ((
         DEBUG_ERROR,
         "QemuVideo: QEMU_VIDEO_VMWARE_SVGA ID mismatch "
@@ -430,6 +444,7 @@ QemuVideoControllerDriverStart (
                   Private->GopDevicePath,
                   NULL
                   );
+DebugPrint(0, "Protocol installed %d\n", Status);
   if (EFI_ERROR (Status)) {
     goto FreeGopDevicePath;
   }
@@ -448,6 +463,10 @@ QemuVideoControllerDriverStart (
     break;
   case QEMU_VIDEO_VMWARE_SVGA:
     Status = QemuVideoVmwareSvgaModeSetup (Private);
+    break;
+  case QEMU_VIDEO_INTEL_HDG:
+    Status = EFI_DEVICE_ERROR;
+DebugPrint(0, "Intel dectected %d\n", Status);
     break;
   default:
     ASSERT (FALSE);

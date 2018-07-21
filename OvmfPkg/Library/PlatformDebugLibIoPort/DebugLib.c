@@ -64,10 +64,10 @@ DebugPrint (
   //
   // Check if the global mask disables this message or the device is inactive
   //
-  if ((ErrorLevel & GetDebugPrintErrorLevel ()) == 0 ||
-      !PlatformDebugLibIoPortFound ()) {
-    return;
-  }
+//  if ((ErrorLevel & GetDebugPrintErrorLevel ()) == 0 ||
+//      !PlatformDebugLibIoPortFound ()) {
+//    return;
+//  }
 
   //
   // Convert the DEBUG() message to an ASCII String
@@ -79,7 +79,7 @@ DebugPrint (
   //
   // Send the print string to the debug I/O port
   //
-  IoWriteFifo8 (PcdGet16 (PcdDebugIoPort), Length, Buffer);
+  IoWriteFifo8 (0x402, Length, Buffer);
 }
 
 
