@@ -40,7 +40,7 @@ done
 ##### HWBASE #####
 ##### LIBGFXINIT #####
 mkdir ${bd}/libgfxinit
-for i in libgfxinit/common/haswell_shared/hw-gfx-gma-connectors-ddi.adb libgfxinit/common/haswell_shared/hw-gfx-gma-connectors-ddi.adb libgfxinit/common/haswell_shared/hw-gfx-gma-port_detect.adb \
+for i in glue/gma.adb libgfxinit/common/haswell_shared/hw-gfx-gma-connectors-ddi.adb libgfxinit/common/haswell_shared/hw-gfx-gma-connectors-ddi.adb libgfxinit/common/haswell_shared/hw-gfx-gma-port_detect.adb \
     libgfxinit/common/haswell_shared/hw-gfx-gma-power_and_clocks_haswell.adb libgfxinit/common/haswell/hw-gfx-gma-connectors-ddi-buffers.adb \
     libgfxinit/common/haswell/hw-gfx-gma-plls-wrpll.adb libgfxinit/common/haswell/hw-gfx-gma-plls.adb libgfxinit/common/haswell/hw-gfx-gma-spll.adb \
     libgfxinit/common/hw-gfx-dp_aux_ch.adb libgfxinit/common/hw-gfx-dp_info.adb libgfxinit/common/hw-gfx-dp_training.adb libgfxinit/common/hw-gfx-edid.adb libgfxinit/common/hw-gfx-framebuffer_filler.adb \
