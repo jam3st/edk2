@@ -6,6 +6,9 @@ use HW;
 package GMA
 is
 
+   procedure test_debugprint;
+   pragma Export (C, test_debugprint, "gma_test_debugprint");
+
    procedure gfxinit (lightup_ok : out Interfaces.C.int);
    pragma Export (C, gfxinit, "gma_gfxinit");
 

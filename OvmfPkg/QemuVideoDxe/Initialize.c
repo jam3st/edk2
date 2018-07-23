@@ -467,3 +467,14 @@ ModeInfoAllocError:
 ModeDataAllocError:
   return Status;
 }
+
+
+void gma_func0_init(QEMU_VIDEO_PRIVATE_DATA* dev);
+EFI_STATUS
+QemuVideoHdGfxModeSetup (
+  QEMU_VIDEO_PRIVATE_DATA *Private
+  )
+{
+  gma_func0_init(Private);
+  return EFI_SUCCESS;
+}

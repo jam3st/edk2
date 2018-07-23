@@ -28,6 +28,31 @@ EFI_DRIVER_BINDING_PROTOCOL gQemuVideoDriverBinding = {
   NULL
 };
 
+
+struct mono_time {
+    long microseconds;
+};
+
+static struct monotonic_counter {
+    int initialized;
+    struct mono_time time;
+    UINT32 last_value;
+} mono_counter;
+
+static inline void mono_time_add_usecs(struct mono_time *mt, long us) 
+{
+    mt->microseconds += us; 
+}
+
+
+void timer_monotonic_get(struct mono_time *mt)
+{
+    MicroSecondDelay(2);
+    mono_time_add_usecs(&mono_counter.time, 2);
+    *mt = mono_counter.time;
+}
+
+
 QEMU_VIDEO_CARD gQemuVideoCardList[] = {
     {
         PCI_CLASS_DISPLAY_VGA,
@@ -119,8 +144,6 @@ QemuVideoDetect(
   @retval EFI_UNSUPPORTED        This device isn't supported.
 
 **/
-void hdgfx_adainit(void);
-
 EFI_STATUS
 EFIAPI
 QemuVideoControllerDriverSupported (
@@ -133,14 +156,6 @@ QemuVideoControllerDriverSupported (
   EFI_PCI_IO_PROTOCOL *PciIo;
   PCI_TYPE00          Pci;
   QEMU_VIDEO_CARD     *Card;
-
-  static int once=0;
-  DebugPrint(0, "This is a debug line Before the ada init \n");
-  if(once == 0) {
-     once = 1;
-      hdgfx_adainit();
-  }
-  DebugPrint(0, "This is a debug line After the ada init \n");
 
   //
   // Open the PCI I/O Protocol
@@ -476,7 +491,8 @@ DebugPrint(0, "Protocol installed %d\n", Status);
     break;
   case QEMU_VIDEO_INTEL_HDG:
     Status = EFI_DEVICE_ERROR;
-DebugPrint(0, "Intel dectected %d\n", Status);
+DebugPrint(0, "Intel HD detected %d\n", Status);
+    Status = QemuVideoHdGfxModeSetup(Private);
     break;
   default:
     ASSERT (FALSE);

@@ -452,32 +452,6 @@ DrawLogo (
   );
 
 VOID
-outb (
-  QEMU_VIDEO_PRIVATE_DATA  *Private,
-  UINTN                           Address,
-  UINT8                           Data
-  );
-
-VOID
-outw (
-  QEMU_VIDEO_PRIVATE_DATA  *Private,
-  UINTN                           Address,
-  UINT16                          Data
-  );
-
-UINT8
-inb (
-  QEMU_VIDEO_PRIVATE_DATA  *Private,
-  UINTN                           Address
-  );
-
-UINT16
-inw (
-  QEMU_VIDEO_PRIVATE_DATA  *Private,
-  UINTN                           Address
-  );
-
-VOID
 BochsWrite (
   QEMU_VIDEO_PRIVATE_DATA  *Private,
   UINT16                   Reg,
@@ -510,6 +484,11 @@ QemuVideoBochsModeSetup (
 
 EFI_STATUS
 QemuVideoVmwareSvgaModeSetup (
+  QEMU_VIDEO_PRIVATE_DATA *Private
+  );
+
+EFI_STATUS
+QemuVideoHdGfxModeSetup (
   QEMU_VIDEO_PRIVATE_DATA *Private
   );
 

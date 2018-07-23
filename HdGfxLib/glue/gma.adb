@@ -7,6 +7,7 @@ use HW.GFX;
 use HW.GFX.GMA;
 use HW.GFX.GMA.Display_Probing;
 
+with HW.Debug_Sink;
 with GMA.Mainboard;
 
 package body GMA
@@ -109,5 +110,11 @@ is
          end if;
       end if;
    end gfxinit;
+
+   procedure test_debugprint
+   is
+   begin
+      HW.Debug_Sink.Put("\ngma test debug printt ok\n");
+   end test_debugprint;
 
 end GMA;
