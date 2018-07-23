@@ -1,0 +1,4 @@
+#string STR_MODULE_ABSTRACT             #language en-US "Waste of space"
+
+#string STR_MODULE_DESCRIPTION          #language en-US "This module does nothing."
+

@@ -66,7 +66,7 @@ for i in glue/gma-mainboard.ads libgfxinit/common/haswell/hw-gfx-gma-ddi_phy.ads
 done
 ##### LIBGFXINIT #####
 cd ${bd}
-${gb} -a -n --RTS=${bd} -Lhdgfx_ada -o hdgdx.adb \
+${gb} -a -n --RTS=${bd} -Lhdgfx_ada -o hdgfx.adb \
     libgfxinit/common/haswell/hw-gfx-gma-connectors-ddi-buffers.ali libgfxinit/common/haswell/hw-gfx-gma-ddi_phy.ali libgfxinit/common/haswell/hw-gfx-gma-plls-lcpll.ali \
     libgfxinit/common/haswell/hw-gfx-gma-plls-wrpll.ali libgfxinit/common/haswell/hw-gfx-gma-plls.ali libgfxinit/common/haswell/hw-gfx-gma-power_and_clocks.ali libgfxinit/common/haswell/hw-gfx-gma-spll.ali \
     libgfxinit/common/haswell_shared/hw-gfx-gma-connectors-ddi.ali libgfxinit/common/haswell_shared/hw-gfx-gma-connectors.ali libgfxinit/common/haswell_shared/hw-gfx-gma-ddi_phy_stub.ali \
@@ -80,6 +80,21 @@ ${gb} -a -n --RTS=${bd} -Lhdgfx_ada -o hdgdx.adb \
     libhwbase/common/hw-pci-mmconf.ali libhwbase/common/hw-pci.ali libhwbase/common/hw-port_io.ali libhwbase/common/hw-sub_regs.ali libhwbase/common/hw-time.ali libhwbase/common/hw.ali \
     libhwbase/debug/hw-debug.ali libgfxinit/common/hw-gfx-gma-config.ali libhwbase/common/hw-config.ali glue/hw-debug_sink.ali glue/gma.ali glue/hw-time-timer.ali glue/gma-mainboard.ali
 
-${cc} --RTS=${bd} -gnatp -gnatwa.eeD.HHTU.U.W.Y  -gnatyN -Os -gnata -m64 -fuse-ld=bfd  -fno-stack-protector -fno-common -fomit-frame-pointer -ffunction-sections -fdata-sections -Wl,--build-id=none -march=x86-64 -c -o hdgdx.o hdgdx.adb
+${cc} --RTS=${bd} -gnatp -gnatwa.eeD.HHTU.U.W.Y -gnatyN -Os -gnata -m64 -fuse-ld=bfd -fno-stack-protector -fno-common -fomit-frame-pointer -ffunction-sections -fdata-sections -Wl,--build-id=none -march=x86-64 -c -o ${bd}/hdgfx.o hdgfx.adb
 
-cp libgnat.a hdgdx.o ..
+${ar} cr ${bd}/hdgfx.lib ${bd}/hdgfx.o \
+    libgfxinit/common/haswell/hw-gfx-gma-connectors-ddi-buffers.o libgfxinit/common/haswell/hw-gfx-gma-ddi_phy.o libgfxinit/common/haswell/hw-gfx-gma-plls-lcpll.o \
+    libgfxinit/common/haswell/hw-gfx-gma-plls-wrpll.o libgfxinit/common/haswell/hw-gfx-gma-plls.o libgfxinit/common/haswell/hw-gfx-gma-power_and_clocks.o libgfxinit/common/haswell/hw-gfx-gma-spll.o \
+    libgfxinit/common/haswell_shared/hw-gfx-gma-connectors-ddi.o libgfxinit/common/haswell_shared/hw-gfx-gma-connectors.o libgfxinit/common/haswell_shared/hw-gfx-gma-ddi_phy_stub.o \
+    libgfxinit/common/haswell_shared/hw-gfx-gma-port_detect.o libgfxinit/common/haswell_shared/hw-gfx-gma-power_and_clocks_haswell.o libgfxinit/common/hw-gfx-dp_aux_ch.o \
+    libgfxinit/common/hw-gfx-dp_defs.o libgfxinit/common/hw-gfx-dp_info.o libgfxinit/common/hw-gfx-dp_training.o libgfxinit/common/hw-gfx-edid.o libgfxinit/common/hw-gfx-framebuffer_filler.o \
+    libgfxinit/common/hw-gfx-gma-config_helpers.o libgfxinit/common/hw-gfx-gma-connector_info.o libgfxinit/common/hw-gfx-gma-display_probing.o libgfxinit/common/hw-gfx-gma-dp_aux_ch.o \
+    libgfxinit/common/hw-gfx-gma-dp_aux_request.o libgfxinit/common/hw-gfx-gma-dp_info.o libgfxinit/common/hw-gfx-gma-i2c.o libgfxinit/common/hw-gfx-gma-panel.o \
+    libgfxinit/common/hw-gfx-gma-pch-fdi.o libgfxinit/common/hw-gfx-gma-pch-sideband.o libgfxinit/common/hw-gfx-gma-pch-transcoder.o libgfxinit/common/hw-gfx-gma-pch-vga.o \
+    libgfxinit/common/hw-gfx-gma-pch.o libgfxinit/common/hw-gfx-gma-pipe_setup.o libgfxinit/common/hw-gfx-gma-registers.o libgfxinit/common/hw-gfx-gma-transcoder.o libgfxinit/common/hw-gfx-gma.o \
+    libgfxinit/common/hw-gfx-i2c.o libgfxinit/common/hw-gfx.o libhwbase/ada/dynamic_mmio/hw-mmio_range.o libhwbase/common/direct/hw-pci-dev.o libhwbase/common/hw-mmio_regs.o \
+    libhwbase/common/hw-pci-mmconf.o libhwbase/common/hw-pci.o libhwbase/common/hw-port_io.o libhwbase/common/hw-sub_regs.o libhwbase/common/hw-time.o libhwbase/common/hw.o \
+    libhwbase/debug/hw-debug.o libgfxinit/common/hw-gfx-gma-config.o libhwbase/common/hw-config.o glue/hw-debug_sink.o glue/gma.o glue/hw-time-timer.o glue/gma-mainboard.o \
+    ${bd}/lib/gnat/ada.o ${bd}/lib/gnat/a-unccon.o ${bd}/lib/gnat/gnat.o ${bd}/lib/gnat/g-souinf.o ${bd}/lib/gnat/i-c.o ${bd}/lib/gnat/interfac.o ${bd}/lib/gnat/s-atacco.o \
+    ${bd}/lib/gnat/s-imenne.o ${bd}/lib/gnat/s-maccod.o ${bd}/lib/gnat/s-parame.o ${bd}/lib/gnat/s-stoele.o ${bd}/lib/gnat/s-unstyp.o ${bd}/lib/gnat/system.o
+

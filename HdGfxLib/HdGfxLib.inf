@@ -1,0 +1,11 @@
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = HdGfx
+  MODULE_UNI_FILE                = HdGfx.uni
+  FILE_GUID                      = E29FC209-BEEF-4500-DEAD-AF4EAE47EA0E
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = HdGfx
+
+[Binaries]
+LIB|build/hdgfx.lib

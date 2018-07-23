@@ -16,7 +16,6 @@
 #include <IndustryStandard/VmwareSvga.h>
 #include "Qemu.h"
 
-
 ///
 /// Generic Attribute Controller Register Settings
 ///
@@ -280,7 +279,7 @@ QemuVideoBochsModeSetup (
   if (Private->ModeData == NULL) {
     return EFI_OUT_OF_RESOURCES;
   }
-  DebugPrint(0, "This is a debug line\n");
+
   ModeData = Private->ModeData;
   VideoMode = &QemuVideoBochsModes[0];
   for (Index = 0; Index < QEMU_VIDEO_BOCHS_MODE_COUNT; Index ++) {

@@ -70,6 +70,7 @@
   UefiBootServicesTableLib
   UefiDriverEntryPoint
   UefiLib
+  HdGfxLib
 
 [Protocols]
   gEfiDriverSupportedEfiVersionProtocolGuid     # PROTOCOL ALWAYS_PRODUCED

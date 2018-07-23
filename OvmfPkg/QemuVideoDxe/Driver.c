@@ -119,6 +119,8 @@ QemuVideoDetect(
   @retval EFI_UNSUPPORTED        This device isn't supported.
 
 **/
+void hdgfx_adainit(void);
+
 EFI_STATUS
 EFIAPI
 QemuVideoControllerDriverSupported (
@@ -131,6 +133,14 @@ QemuVideoControllerDriverSupported (
   EFI_PCI_IO_PROTOCOL *PciIo;
   PCI_TYPE00          Pci;
   QEMU_VIDEO_CARD     *Card;
+
+  static int once=0;
+  DebugPrint(0, "This is a debug line Before the ada init \n");
+  if(once == 0) {
+     once = 1;
+      hdgfx_adainit();
+  }
+  DebugPrint(0, "This is a debug line After the ada init \n");
 
   //
   // Open the PCI I/O Protocol
