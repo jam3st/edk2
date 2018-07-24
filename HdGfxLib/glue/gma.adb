@@ -7,6 +7,8 @@ use HW.GFX;
 use HW.GFX.GMA;
 use HW.GFX.GMA.Display_Probing;
 
+with HW.Debug;
+
 with HW.Debug_Sink;
 with GMA.Mainboard;
 
@@ -26,6 +28,10 @@ is
       use type word32;
       use type Interfaces.C.int;
    begin
+      Debug.Put ("fill_lb_framebuffer at ");
+      Debug.Put_Word64(linear_fb_addr);
+      Debug.Put_Line ("");
+
       if fb_valid then
          framebuffer :=
            (tag                  =>  0,

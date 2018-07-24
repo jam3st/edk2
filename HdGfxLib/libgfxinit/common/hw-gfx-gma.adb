@@ -444,7 +444,7 @@ is
             Mode        => HW.GFX.Invalid_Mode));
       PLLs.Initialize;
 
-      Dev.Initialize (Success);
+      Dev.Initialize (Success, 16#80000000#);
 
       if Success then
          Dev.Map (PCI_MMIO_Base, PCI.Res0, Length => Config.GTT_Offset);
@@ -452,8 +452,13 @@ is
          if PCI_MMIO_Base /= 0 and PCI_GTT_Base /= 0 then
             Registers.Set_Register_Base (PCI_MMIO_Base, PCI_GTT_Base);
          else
-            pragma Debug (Debug.Put_Line
-              ("ERROR: Couldn't map resoure0."));
+            Debug.Put ("ERROR: Couldn't map resoure0 mmio at ");
+            Debug.Put_Int32(Config.GTT_Offset);
+            Debug.Put (" ");
+            Debug.Put_Word64(PCI_MMIO_Base);
+            Debug.Put (" ");
+            Debug.Put_Word64(PCI_GTT_Base);
+            Debug.Put_Line ("");
             Registers.Set_Register_Base (Config.Default_MMIO_Base);
             Success := Config.Default_MMIO_Base_Set;
          end if;

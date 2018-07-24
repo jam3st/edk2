@@ -12,20 +12,21 @@
 
 
 
-static inline __attribute__((always_inline)) u32 read32( const volatile void *addr)
+static inline __attribute__((always_inline)) u32 read32( const volatile u32* addr)
 {
-    return *((volatile u32 *)(addr));
+    u32 val;
+    asm("movl (%eax), %rax" : "=a" (val): "a"(addr): "memory");
+    return *addr;
 }
 
-static inline __attribute__((always_inline)) void write32(volatile void *addr,
-    u32 value)
+static inline __attribute__((always_inline)) void write32(volatile u32 *addr, u32 val)
 {
-    *((volatile u32 *)(addr)) = value;
+    asm("movl %edx, (%rax)" : "=d" (val): "a"(addr): "memory");
 }
 
-static inline void *res2mmio(u64 base, unsigned long offset)
+static inline u32* res2mmio(u64 base, unsigned long offset)
 {
-    return (void *)((base + (u64)offset));
+    return (u32 *)(u64)((base + offset));
 }
 
 static inline u32 inl(u16 port)
@@ -60,12 +61,6 @@ struct gt_reg {
     u32 andmask;
     u32 ormask;
 };
-
-u16 get_pmbase(void)
-{
-    static u16 pmbase = 0x8c00;
-    return pmbase;
-}
 
 static const struct gt_reg haswell_gt_setup[] = { 
     /* Enable Counters */
@@ -119,26 +114,30 @@ static const struct gt_reg haswell_gt_lock[] = {
     { 0 },
 };
 
-#define GTT_PTE_BASE (2 << 20)
 
 static u64 gtt_res_base = 0ull;
 
-u32 gtt_read(u32 reg)
+u32 gtt_read(u32 reg, int print)
 {
     u32 val;
-    val = read32(res2mmio(gtt_res_base, reg));
+    void* xreg = res2mmio(gtt_res_base, reg); 
+    val = read32(xreg);
+    if(print)
+        DebugPrint(0,  "GTT R %p %x\n", xreg, val);
     return val;
 
 }
 
 void gtt_write(u32 reg, u32 data)
 {
-    write32(res2mmio(gtt_res_base, reg), data);
+    void* xreg = res2mmio(gtt_res_base, reg); 
+    write32(xreg, data);
+    DebugPrint(0,  "GTT W %p %x\n", xreg, data);
 }
 
 static inline void gtt_rmw(u32 reg, u32 andmask, u32 ormask)
 {
-    u32 val = gtt_read(reg);
+    u32 val = gtt_read(reg, 1);
     val &= andmask;
     val |= ormask;
     gtt_write(reg, val);
@@ -154,42 +153,39 @@ static inline void gtt_write_regs(const struct gt_reg *gt)
     }
 }
 
-/* Enable a standard GPE */
-void enable_gpe(u32 mask)
-{
-    u32 gpe0_reg =  LP_GPE0_EN_4;
-    u32 gpe0_en = inl(get_pmbase() + gpe0_reg);
-    gpe0_en |= mask;
-    outl(gpe0_en, get_pmbase() + gpe0_reg);
-}
-
-#define GTT_RETRY 1000
+#define GTT_RETRY 10000
 int gtt_poll(u32 reg, u32 mask, u32 value)
 {
     unsigned try = GTT_RETRY;
     u32 data;
 
     while (try--) {
-        data = gtt_read(reg);
-        if ((data & mask) == value)
+        data = gtt_read(reg, 0);
+        if ((data & mask) == value) {
+            DebugPrint(0, "GT poll ok %x %x %x\n", reg, mask, value);
             return 1;
-        MicroSecondDelay(10);
+            }
+        MicroSecondDelay(100);
     }
 
-    DebugPrint(0, "GT init timeout\n");
+    DebugPrint(0, "GT init timeout on %x %x %x got %x\n", reg, mask, value, data);
     return 0;
 }
 
 static void power_well_enable(void)
 {
+    gtt_write(HSW_PWR_WELL_CTL1, 0);
+    MicroSecondDelay(50000);
     gtt_write(HSW_PWR_WELL_CTL1, HSW_PWR_WELL_ENABLE);
+    gtt_read(HSW_PWR_WELL_CTL1,1);
     gtt_poll(HSW_PWR_WELL_CTL1, HSW_PWR_WELL_STATE, HSW_PWR_WELL_STATE);
+    gtt_read(HSW_PWR_WELL_CTL1,1);
 }
 
 
 static void gma_pm_init_pre_vbios()
 {
-	DebugPrint(0, "GT Power Management Init\n");
+	DebugPrint(0, "GT Power Management Init %llx\n", gtt_res_base);
 
 	power_well_enable();
 
@@ -200,7 +196,7 @@ static void gma_pm_init_pre_vbios()
 	/* Enable Force Wake */
 	gtt_write(0x0a180, 1 << 5);
 	gtt_write(0x0a188, 0x00010001);
-	gtt_poll(FORCEWAKE_ACK_HSW, 1 << 0, 1 << 0);
+	gtt_poll(FORCEWAKE_ACK_HSW, 1u << 0, 1u << 0);
 
 	/* GT Settings */
 	gtt_write_regs(haswell_gt_setup);
@@ -228,74 +224,31 @@ static void gma_pm_init_pre_vbios()
 }
 
 
-static void gma_pm_init_post_vbios(u16 devId)
-{
-	int cdclk = 0;
-	int devid = devId;
-	int gpu_is_ulx = 0;
+struct lb_framebuffer {
+    u32 tag;
+    u32 size;
 
-	gtt_write(CPU_VGACNTRL, CPU_VGA_DISABLE);
-
-	if (devid == 0x0a0e || devid == 0x0a1e)
-		gpu_is_ulx = 1;
-
-	/* CD Frequency */
-	if ((gtt_read(0x42014) & 0x1000000) || gpu_is_ulx)
-		cdclk = 0; /* fixed frequency */
-	else
-		cdclk = 2; /* variable frequency */
-
-	if (gpu_is_ulx || cdclk != 0)
-		gtt_rmw(0x130040, 0xf7ffffff, 0x04000000);
-	else
-		gtt_rmw(0x130040, 0xf3ffffff, 0x00000000);
-
-	/* More magic */
-	if( gpu_is_ulx) {
-		if (!gpu_is_ulx)
-			gtt_write(0x138128, 0x00000000);
-		else
-			gtt_write(0x138128, 0x00000001);
-		gtt_write(0x13812c, 0x00000000);
-		gtt_write(0x138124, 0x80000017);
-	}
-
-	/* Disable Force Wake */
-	gtt_write(0x0a188, 0x00010000);
-	gtt_poll(FORCEWAKE_ACK_HSW, 1 << 0, 0 << 0);
-	gtt_write(0x0a188, 0x00000001);
-}
- 
-/* Enable TCO SCI */
-void enable_tco_sci(void)
-{
-    u16 gpe0_sts = LP_GPE0_STS_4;
-
-    /* Clear pending events */
-    outl(get_pmbase() + gpe0_sts, TCOSCI_STS);
-
-    /* Enable TCO SCI events */
-    enable_gpe(TCOSCI_EN);
-}
-
-
-/* Enable SCI to ACPI _GPE._L06 */
-static void gma_enable_swsci(void)
-{
-    u16 reg16;
-
-    /* clear DMISCI status */
-    reg16 = inw(get_pmbase() + TCO1_STS);
-    reg16 &= DMISCI_STS;
-    outw(get_pmbase() + TCO1_STS, reg16);
-
-    /* clear and enable ACPI TCO SCI */
-    enable_tco_sci();
-}
+    u64 physical_address;
+    u32 x_resolution;
+    u32 y_resolution;
+    u32 bytes_per_line;
+    u8 bits_per_pixel;
+    u8 red_mask_pos;
+    u8 red_mask_size;
+    u8 green_mask_pos;
+    u8 green_mask_size;
+    u8 blue_mask_pos;
+    u8 blue_mask_size;
+    u8 reserved_mask_pos;
+    u8 reserved_mask_size;
+};
 
 void hdgfx_adainit(void);
 void gma_test_debugprint(void);
 void gma_gfxinit(int* ok);
+int fill_lb_framebuffer(struct lb_framebuffer *framebuffer);
+
+static struct lb_framebuffer fb;
 void Write8(UINT8     Data) {
      __asm__ __volatile__ ("outb %b0,%w1" : : "a" (Data), "d" ((UINT16)0x402));
 }
@@ -304,38 +257,67 @@ void Write8(UINT8     Data) {
 #define  PCI_COMMAND_MEMORY 0x2 
 #define  PCI_COMMAND_IO     0x1
 
+static void mset(u8* dst, u8 pat, u64 size) {
+    while(size-- != 0) {
+        dst[size] = pat;
+    }
+}
 
 void gma_func0_init(QEMU_VIDEO_PRIVATE_DATA* dev) {
   EFI_STATUS s;
+  EFI_ACPI_ADDRESS_SPACE_DESCRIPTOR *BarDesc;
+  UINT16 command;
   static int once = 0;
+  static int lightup_ok = 0;
   if(once++ != 0) {
     return;
   }
-  static int lightup_ok = 0;
   u16 deviceId = 0xffffu;
-  u32 reg32 = 0x0u;
-  s = dev->PciIo->Pci.Read (dev->PciIo, EfiPciIoWidthUint32, PCI_COMMAND, 1, &reg32);
-  DebugPrint(0, "PCI READ is %d %8lx\n", s, reg32);
-  reg32 |= PCI_COMMAND_MASTER | PCI_COMMAND_MEMORY | PCI_COMMAND_IO;
-  DebugPrint(0, "PCI about to write is %8lx\n", reg32);
-  s = dev->PciIo->Pci.Write (dev->PciIo, EfiPciIoWidthUint32, PCI_COMMAND, 1, &reg32);
-  DebugPrint(0, "PCI WRITE is %d %8lx\n", s, reg32);
+  dev->PciIo->Pci.Read(
+                    dev->PciIo,
+                    EfiPciIoWidthUint16,
+                    PCI_COMMAND,
+                    1,
+                    &command
+                    );
+   command |= PCI_COMMAND_MASTER | PCI_COMMAND_MEMORY | PCI_COMMAND_IO;
+   command ^= PCI_COMMAND_MASTER;
+   s = dev->PciIo->Pci.Write (
+                    dev->PciIo,
+                    EfiPciIoWidthUint16,
+                    PCI_COMMAND,
+                    1,
+                    &command
+                    );
 
-  gtt_res_base = 0xffffffffffffffffull;
-  s = dev->PciIo->Pci.Read (dev->PciIo, EfiPciIoWidthUint32, PCI_BASE_ADDRESSREG_OFFSET, 1, &gtt_res_base);
-  gtt_res_base &= 0x00000000ffffffffull;
+
+  DebugPrint(0, "Attribute set %d\n", s);
+  s = dev->PciIo->GetBarAttributes (dev->PciIo, PCI_BAR_IDX0, NULL, (VOID**) &BarDesc);
+  /* Get a Memory address for mapping the Grant Table. */
+  DebugPrint(0, "BAR0: BAR at %LX len %x %x\n", BarDesc->AddrRangeMin, BarDesc->AddrLen, BarDesc->AddrTranslationOffset);
+  gtt_res_base = BarDesc->AddrRangeMin;
+  s = dev->PciIo->GetBarAttributes (dev->PciIo, PCI_BAR_IDX1, NULL, (VOID**) &BarDesc);
+  /* Get a Memory address for mapping the Grant Table. */
+  DebugPrint(0, "BAR2: BAR at %LX len %x %x\n", BarDesc->AddrRangeMin, BarDesc->AddrLen, BarDesc->AddrTranslationOffset);
   DebugPrint(0, "GTT BASE is %d %16llx\n", s, gtt_res_base);
   dev->PciIo->Pci.Read (dev->PciIo, EfiPciIoWidthUint16, PCI_DEVICE_ID_OFFSET, 1, &deviceId);
   DebugPrint(0, "GTT BASE devid %4x\n", deviceId);
 
-  gma_pm_init_pre_vbios();
   hdgfx_adainit();
+  gma_pm_init_pre_vbios();
   gma_gfxinit(&lightup_ok);
   DebugPrint(0, "Lightup ok is %d\n", lightup_ok);
       /* Post panel init */
-  gma_pm_init_post_vbios(deviceId);
 
-  gma_enable_swsci();
-
+  if(fill_lb_framebuffer(&fb) == 0) {
+      u8* fbAddr = (u8 *)(0x800000000);
+      u64 fbSize = fb.x_resolution * 2* 4;
+      DebugPrint(0, "fb is at %p of %d x %d size 0x%llx\n", fbAddr, fb.x_resolution, fb.y_resolution, fbSize);
+      fbSize = 1920 * 2160 * 4;
+      DebugPrint(0, "fbsize %lld\n", fbSize);
+      mset(fbAddr, 0x55, fbSize);
+      DebugPrint(0, "DONE %lld\n", fbSize);
+    }
+    
 }
 

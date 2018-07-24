@@ -133,6 +133,16 @@ QemuVideoDetect(
   return NULL;
 }
 
+static void memcpy(void *dest, const void *src, int n)
+{
+  unsigned char *d = dest;
+  unsigned char const *s = src;
+
+  while (n--)
+    *d++ = *s++;
+}
+
+
 /**
   Check if this device is supported.
 
@@ -240,6 +250,9 @@ QemuVideoControllerDriverStart (
   PCI_TYPE00                        Pci;
   QEMU_VIDEO_CARD                   *Card;
   EFI_PCI_IO_PROTOCOL               *ChildPciIo;
+unsigned char x[256];
+
+int i;
 
   OldTpl = gBS->RaiseTPL (TPL_CALLBACK);
 DebugPrint(0, "QemuVideoControllerDriverStart\n");
@@ -281,10 +294,17 @@ DebugPrint(0, "OpenProtocol %d\n", Status);
                         Private->PciIo,
                         EfiPciIoWidthUint32,
                         0,
-                        sizeof (Pci) / sizeof (UINT32),
-                        &Pci
+                        64,
+                        &x[0]
                         );
 DebugPrint(0, "Read configuration %d\n", Status);
+memcpy(&Pci, &x[0], sizeof(Pci));
+  for(i = 0; i < sizeof(x); ++i) {
+     DebugPrint(0, "%02x ", x[i]);
+     if(((i + 1) % 16) == 0)
+        DebugPrint(0, "\n");
+  }
+      DebugPrint(0, "\n");
   if (EFI_ERROR (Status)) {
     goto ClosePciIo;
   }
@@ -326,10 +346,15 @@ DebugPrint(0, "Read Attributes %d\n", Status);
   //
   // Set new PCI attributes
   //
+#define  PCI_COMMAND_MASTER 0x4
+#define  PCI_COMMAND_MEMORY 0x2
+#define  PCI_COMMAND_IO     0x1
+
+
   Status = Private->PciIo->Attributes (
                             Private->PciIo,
                             EfiPciIoAttributeOperationEnable,
-                            EFI_PCI_DEVICE_ENABLE | EFI_PCI_IO_ATTRIBUTE_VGA_MEMORY | EFI_PCI_IO_ATTRIBUTE_VGA_IO,
+                            EFI_PCI_DEVICE_ENABLE |PCI_COMMAND_MASTER |PCI_COMMAND_MEMORY |PCI_COMMAND_IO ,
                             NULL
                             );
 DebugPrint(0, "Set Attributes %d\n", Status);
@@ -340,7 +365,7 @@ DebugPrint(0, "Set Attributes %d\n", Status);
   //
   // Check whenever the qemu stdvga mmio bar is present (qemu 1.3+).
   //
-  if (Private->Variant == QEMU_VIDEO_BOCHS_MMIO) {
+  if (0 && Private->Variant == QEMU_VIDEO_BOCHS_MMIO) {
     EFI_ACPI_ADDRESS_SPACE_DESCRIPTOR *MmioDesc;
 
     Status = Private->PciIo->GetBarAttributes (
@@ -351,36 +376,24 @@ DebugPrint(0, "Set Attributes %d\n", Status);
                         );
     if (EFI_ERROR (Status) ||
         MmioDesc->ResType != ACPI_ADDRESS_SPACE_TYPE_MEM) {
-      DEBUG ((EFI_D_INFO, "QemuVideo: No mmio bar, fallback to port io\n"));
+      DebugPrint(0, "QemuVideo: No mmio bar, fallback to port io\n");
       Private->Variant = QEMU_VIDEO_BOCHS;
     } else {
-      DEBUG ((EFI_D_INFO, "QemuVideo: Using mmio bar @ 0x%lx\n",
-              MmioDesc->AddrRangeMin));
+      DebugPrint(0, "QemuVideo: Using mmio bar @ 0x%lx\n",
+              MmioDesc->AddrRangeMin);
     }
 
     if (!EFI_ERROR (Status)) {
       FreePool (MmioDesc);
     }
   }
-
   //
   // Check if accessing the bochs interface works.
   //
-  if (Private->Variant == QEMU_VIDEO_BOCHS_MMIO ||
-      Private->Variant == QEMU_VIDEO_BOCHS) {
-    UINT16 BochsId;
-    BochsId = BochsRead(Private, VBE_DISPI_INDEX_ID);
-    if ((BochsId & 0xFFF0) != VBE_DISPI_ID0) {
-      DEBUG ((EFI_D_INFO, "QemuVideo: BochsID mismatch (got 0x%x)\n", BochsId));
-      Status = EFI_DEVICE_ERROR;
-      goto RestoreAttributes;
-    }
-  }
-
   //
   // Check if accessing Vmware SVGA interface works
   //
-  if (Private->Variant == QEMU_VIDEO_VMWARE_SVGA) {
+  if (0 && Private->Variant == QEMU_VIDEO_VMWARE_SVGA) {
     EFI_ACPI_ADDRESS_SPACE_DESCRIPTOR *IoDesc;
     UINT32                            TargetId;
     UINT32                            SvgaIdRead;
@@ -439,8 +452,10 @@ DebugPrint(0, "Error SvgaIdRead %d\n", Status);
                   (VOID **) &ParentDevicePath
                   );
   if (EFI_ERROR (Status)) {
+DebugPrint(0, "HandleProtocol %s\n", Status);
     goto RestoreAttributes;
   }
+Private->FrameBufferVramBarIndex = PCI_BAR_IDX1;
 
   //
   // Set Gop Device Path
@@ -456,6 +471,7 @@ DebugPrint(0, "Error SvgaIdRead %d\n", Status);
                                       (EFI_DEVICE_PATH_PROTOCOL *) &AcpiDeviceNode
                                       );
   if (Private->GopDevicePath == NULL) {
+DebugPrint(0, "&AcpiDeviceNode, %s\n", Status);
     Status = EFI_OUT_OF_RESOURCES;
     goto RestoreAttributes;
   }
@@ -491,8 +507,8 @@ DebugPrint(0, "Protocol installed %d\n", Status);
     break;
   case QEMU_VIDEO_INTEL_HDG:
     Status = EFI_DEVICE_ERROR;
-DebugPrint(0, "Intel HD detected %d\n", Status);
     Status = QemuVideoHdGfxModeSetup(Private);
+DebugPrint(0, "Intel HD detected %d\n", Status);
     break;
   default:
     ASSERT (FALSE);
@@ -500,6 +516,7 @@ DebugPrint(0, "Intel HD detected %d\n", Status);
     break;
   }
   if (EFI_ERROR (Status)) {
+DebugPrint(0, "Intel HD ERROR %d\n", Status);
     goto UninstallGopDevicePath;
   }
 
@@ -508,6 +525,7 @@ DebugPrint(0, "Intel HD detected %d\n", Status);
   //
   Status = QemuVideoGraphicsOutputConstructor (Private);
   if (EFI_ERROR (Status)) {
+DebugPrint(0, "QemuVideoGraphicsOutputConstructor %d\n", Status);
     goto FreeModeData;
   }
 
@@ -518,9 +536,11 @@ DebugPrint(0, "Intel HD detected %d\n", Status);
                   NULL
                   );
   if (EFI_ERROR (Status)) {
+DebugPrint(0, "QemuVideoGraphicsOutputConstructor failed %d\n", Status);
     goto DestructQemuVideoGraphics;
   }
 
+DebugPrint(0, "QemuVideoGraphicsOutputConstructor passed %d\n", Status);
   //
   // Reference parent handle from child handle.
   //
@@ -533,8 +553,10 @@ DebugPrint(0, "Intel HD detected %d\n", Status);
                 EFI_OPEN_PROTOCOL_BY_CHILD_CONTROLLER
                 );
   if (EFI_ERROR (Status)) {
+DebugPrint(0, "QOpenProtocol failed %d\n", Status);
     goto UninstallGop;
   }
+DebugPrint(0, "QOpenProtocol passed %d\n", Status);
 
 #if defined MDE_CPU_IA32 || defined MDE_CPU_X64
   if (Private->Variant == QEMU_VIDEO_BOCHS_MMIO ||
@@ -567,6 +589,7 @@ FreeGopDevicePath:
   FreePool (Private->GopDevicePath);
 
 RestoreAttributes:
+  DebugPrint(0, "RestoreAttributes AFTER FAIL \n");
   Private->PciIo->Attributes (Private->PciIo, EfiPciIoAttributeOperationSet,
                     Private->OriginalPciAttributes, NULL);
 

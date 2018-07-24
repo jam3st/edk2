@@ -14,6 +14,8 @@
 
 with HW.Config;
 with HW.PCI.MMConf;
+with HW.Debug;
+
 
 with HW.MMIO_Range;
 pragma Elaborate_All (HW.MMIO_Range);
@@ -103,15 +105,16 @@ is
       Write16 (PCI.Command, Cmd);
    end Resource_Size;
 
-   procedure Initialize (Success : out Boolean; MMConf_Base : Word64 := 0)
+   procedure Initialize (Success : out Boolean; MMConf_Base : Word64 := 16#b0000000#)
    is
    begin
-      if MMConf_Base /= 0 then
-         MM.Set_Base_Address (MMConf_Base);
-      else
-         MM.Set_Base_Address (Config.Default_MMConf_Base);
-      end if;
-      Success := MMConf_Base /= 0 or Config.Default_MMConf_Base_Set;
+      Debug.Put ("Initialize MMIO: ");
+      MM.Set_Base_Address(MMConf_Base);
+      Debug.Put_Word64(MMConf_Base);
+      Debug.Put_Line("");
+      Debug.Put ("Initialize MMIO: ");
+      Debug.Put_Line("");
+      Success := True ; --MMConf_Base /= 0 or Config.Default_MMConf_Base_Set;
    end Initialize;
 
 end HW.PCI.Dev;

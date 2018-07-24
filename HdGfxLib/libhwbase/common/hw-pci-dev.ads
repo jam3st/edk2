@@ -50,7 +50,7 @@ is
 
    pragma Warnings (GNATprove, Off, "unused variable ""MMConf_Base""*",
                     Reason => "Used for a common interface");
-   procedure Initialize (Success : out Boolean; MMConf_Base : Word64 := 0);
+   procedure Initialize (Success : out Boolean; MMConf_Base : Word64 := 16#b0000000#);
    pragma Warnings (GNATprove, On, "unused variable ""MMConf_Base""*");
 
 end HW.PCI.Dev;

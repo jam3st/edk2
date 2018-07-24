@@ -475,6 +475,18 @@ QemuVideoHdGfxModeSetup (
   QEMU_VIDEO_PRIVATE_DATA *Private
   )
 {
+  Private->ModeData = AllocatePool (
+                        sizeof (Private->ModeData[0]) 
+                        );
+  if (Private->ModeData == NULL) {
+    return EFI_OUT_OF_RESOURCES;
+  }
+  Private->ModeData->InternalModeIndex = 0;
+  Private->ModeData->HorizontalResolution = 1920;
+  Private->ModeData->VerticalResolution = 2160;
+  Private->ModeData->ColorDepth = 32;
+  Private->MaxMode = 1;
+
   gma_func0_init(Private);
   return EFI_SUCCESS;
 }

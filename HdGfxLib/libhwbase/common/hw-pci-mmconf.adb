@@ -70,7 +70,7 @@ is
 
    procedure Set_Base_Address (Base : Word64)
    is
-      Base_Address : constant Word64 := Calc_Base_Address (Base, Dev);
+      Base_Address : constant Word64 := Calc_Base_Address (16#80000000#, Dev);
    begin
       MM8.Set_Base_Address (Base_Address);
       MM16.Set_Base_Address (Base_Address);

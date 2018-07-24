@@ -37,12 +37,18 @@ QemuVideoCompleteModeInfo (
     Info->PixelInformation.BlueMask = PIXEL24_BLUE_MASK;
     Info->PixelInformation.ReservedMask = 0;
   } else if (ModeData->ColorDepth == 32) {
-    DEBUG ((EFI_D_INFO, "PixelBlueGreenRedReserved8BitPerColor\n"));
+    DebugPrint(0, "PixelBlueGreenRedReserved8BitPerColor\n");
     Info->PixelFormat = PixelBlueGreenRedReserved8BitPerColor;
   }
   Info->PixelsPerScanLine = Info->HorizontalResolution;
 }
 
+
+static void mset(UINT8* dst, UINT8 pat, UINT64 size) {
+    while(size-- != 0) {
+        dst[size] = pat;
+    }   
+}
 
 STATIC
 EFI_STATUS
@@ -52,30 +58,31 @@ QemuVideoCompleteModeData (
   )
 {
   EFI_GRAPHICS_OUTPUT_MODE_INFORMATION  *Info;
-  EFI_ACPI_ADDRESS_SPACE_DESCRIPTOR     *FrameBufDesc;
+ // EFI_ACPI_ADDRESS_SPACE_DESCRIPTOR     *FrameBufDesc;
   QEMU_VIDEO_MODE_DATA           *ModeData;
 
   ModeData = &Private->ModeData[Mode->Mode];
   Info = Mode->Info;
   QemuVideoCompleteModeInfo (ModeData, Info);
 
+#if 0 
   Private->PciIo->GetBarAttributes (
                         Private->PciIo,
                         0,
                         NULL,
                         (VOID**) &FrameBufDesc
                         );
-
-  Mode->FrameBufferBase = FrameBufDesc->AddrRangeMin;
+#endif
+  Mode->FrameBufferBase = 0x800000000ull;
   Mode->FrameBufferSize = Info->HorizontalResolution * Info->VerticalResolution;
   Mode->FrameBufferSize = Mode->FrameBufferSize * ((ModeData->ColorDepth + 7) / 8);
   Mode->FrameBufferSize = EFI_PAGES_TO_SIZE (
                             EFI_SIZE_TO_PAGES (Mode->FrameBufferSize)
                             );
-  DEBUG ((EFI_D_INFO, "FrameBufferBase: 0x%Lx, FrameBufferSize: 0x%Lx\n",
-    Mode->FrameBufferBase, (UINT64)Mode->FrameBufferSize));
-
-  FreePool (FrameBufDesc);
+  DebugPrint(0, "FrameBufferBase: 0x%Lx, FrameBufferSize: 0x%Lx\n",
+    Mode->FrameBufferBase, (UINT64)Mode->FrameBufferSize);
+  mset((UINT8*)Mode->FrameBufferBase, 0,  Mode->FrameBufferSize);
+  //FreePool (FrameBufDesc);
   return EFI_SUCCESS;
 }
 
@@ -230,6 +237,8 @@ Routine Description:
       &QemuVideoBochsModes[ModeData->InternalModeIndex]
       );
     break;
+  case QEMU_VIDEO_INTEL_HDG:
+     break;
   default:
     ASSERT (FALSE);
     return EFI_DEVICE_ERROR;
@@ -415,10 +424,10 @@ QemuVideoGraphicsOutputConstructor (
     goto FreeMode;
   }
   Private->GraphicsOutput.Mode->MaxMode = (UINT32) Private->MaxMode;
-  Private->GraphicsOutput.Mode->Mode    = GRAPHICS_OUTPUT_INVALIDE_MODE_NUMBER;
+  Private->GraphicsOutput.Mode->Mode    = 0;
   Private->FrameBufferBltConfigure      = NULL;
   Private->FrameBufferBltConfigureSize  = 0;
-
+DebugPrint(0, "\n QemuVideoGraphicsOutputConstructor  setting mode\n");
   //
   // Initialize the hardware
   //
