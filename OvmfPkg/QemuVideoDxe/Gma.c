@@ -224,31 +224,12 @@ static void gma_pm_init_pre_vbios()
 }
 
 
-struct lb_framebuffer {
-    u32 tag;
-    u32 size;
 
-    u64 physical_address;
-    u32 x_resolution;
-    u32 y_resolution;
-    u32 bytes_per_line;
-    u8 bits_per_pixel;
-    u8 red_mask_pos;
-    u8 red_mask_size;
-    u8 green_mask_pos;
-    u8 green_mask_size;
-    u8 blue_mask_pos;
-    u8 blue_mask_size;
-    u8 reserved_mask_pos;
-    u8 reserved_mask_size;
-};
+struct lb_framebuffer* getFb() {
+   static struct lb_framebuffer fb;
+   return &fb;
+}
 
-void hdgfx_adainit(void);
-void gma_test_debugprint(void);
-void gma_gfxinit(int* ok);
-int fill_lb_framebuffer(struct lb_framebuffer *framebuffer);
-
-static struct lb_framebuffer fb;
 void Write8(UINT8     Data) {
      __asm__ __volatile__ ("outb %b0,%w1" : : "a" (Data), "d" ((UINT16)0x402));
 }
@@ -309,15 +290,14 @@ void gma_func0_init(QEMU_VIDEO_PRIVATE_DATA* dev) {
   DebugPrint(0, "Lightup ok is %d\n", lightup_ok);
       /* Post panel init */
 
-  if(fill_lb_framebuffer(&fb) == 0) {
+  if(fill_lb_framebuffer(getFb()) == 0) {
+      struct lb_framebuffer* fb = getFb();
       u8* fbAddr = (u8 *)(0x800000000);
-      u64 fbSize = fb.x_resolution * 2* 4;
-      DebugPrint(0, "fb is at %p of %d x %d size 0x%llx\n", fbAddr, fb.x_resolution, fb.y_resolution, fbSize);
-      fbSize = 1920 * 2160 * 4;
+      u64 fbSize = fb->x_resolution * fb->y_resolution * 4;
+      DebugPrint(0, "fb is at %p of %d x %d size 0x%llx\n", fbAddr, fb->x_resolution, fb->y_resolution, fb->bpp);
       DebugPrint(0, "fbsize %lld\n", fbSize);
       mset(fbAddr, 0x55, fbSize);
       DebugPrint(0, "DONE %lld\n", fbSize);
     }
-    
 }
 

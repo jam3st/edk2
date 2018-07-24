@@ -25,30 +25,24 @@ is
      (framebuffer : in out lb_framebuffer)
       return Interfaces.C.int
    is
-      use type word32;
+      use type word64;
       use type Interfaces.C.int;
    begin
-      Debug.Put ("fill_lb_framebuffer at ");
-      Debug.Put_Word64(linear_fb_addr);
-      Debug.Put_Line ("");
 
       if fb_valid then
-         framebuffer :=
-           (tag                  =>  0,
-            size                 =>  0,
+         framebuffer := (
             physical_address     => linear_fb_addr,
-            x_resolution         => word32 (fb.Width),
-            y_resolution         => word32 (fb.Height),
-            bytes_per_line       => 4 * word32 (fb.Stride),
-            bits_per_pixel       => 32,
-            reserved_mask_pos    => 24,
-            reserved_mask_size   =>  8,
-            red_mask_pos         => 16,
-            red_mask_size        =>  8,
-            green_mask_pos       =>  8,
-            green_mask_size      =>  8,
-            blue_mask_pos        =>  0,
-            blue_mask_size       =>  8);
+            x_resolution         => Word64(fb.Width),
+            y_resolution         => Word64(fb.Height),
+            bpp                  => 32
+         );
+         Debug.Put ("fill_lb_framebuffer at ");
+         Debug.Put_Word64(linear_fb_addr);
+         Debug.Put (" and is ");
+         Debug.Put_Int32(fb.Width);
+         Debug.Put (" x ");
+         Debug.Put_Int32(fb.Height);
+         Debug.Put_Line ("");
          return 0;
       else
          return -1;

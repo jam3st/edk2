@@ -60,9 +60,17 @@ QemuVideoCompleteModeData (
   EFI_GRAPHICS_OUTPUT_MODE_INFORMATION  *Info;
  // EFI_ACPI_ADDRESS_SPACE_DESCRIPTOR     *FrameBufDesc;
   QEMU_VIDEO_MODE_DATA           *ModeData;
+  struct lb_framebuffer* fb = getFb();
+
 
   ModeData = &Private->ModeData[Mode->Mode];
+  ModeData->HorizontalResolution = fb->x_resolution;
+  ModeData->VerticalResolution = fb->y_resolution;
+  ModeData->ColorDepth = fb->bpp;
+
   Info = Mode->Info;
+  Info->HorizontalResolution = fb->x_resolution;
+  Info->VerticalResolution = fb->y_resolution;
   QemuVideoCompleteModeInfo (ModeData, Info);
 
 #if 0 
@@ -73,7 +81,7 @@ QemuVideoCompleteModeData (
                         (VOID**) &FrameBufDesc
                         );
 #endif
-  Mode->FrameBufferBase = 0x800000000ull;
+  Mode->FrameBufferBase = fb->physical_address;
   Mode->FrameBufferSize = Info->HorizontalResolution * Info->VerticalResolution;
   Mode->FrameBufferSize = Mode->FrameBufferSize * ((ModeData->ColorDepth + 7) / 8);
   Mode->FrameBufferSize = EFI_PAGES_TO_SIZE (

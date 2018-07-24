@@ -15,22 +15,10 @@ is
    ----------------------------------------------------------------------------
 
    type lb_framebuffer is record
-      tag                  : word32;
-      size                 : word32;
-
       physical_address     : word64;
-      x_resolution         : word32;
-      y_resolution         : word32;
-      bytes_per_line       : word32;
-      bits_per_pixel       : word8;
-      red_mask_pos         : word8;
-      red_mask_size        : word8;
-      green_mask_pos       : word8;
-      green_mask_size      : word8;
-      blue_mask_pos        : word8;
-      blue_mask_size       : word8;
-      reserved_mask_pos    : word8;
-      reserved_mask_size   : word8;
+      x_resolution         : word64;
+      y_resolution         : word64;
+      bpp                  : word64;
    end record;
 
    function fill_lb_framebuffer

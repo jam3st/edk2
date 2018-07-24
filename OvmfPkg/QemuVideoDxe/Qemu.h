@@ -40,6 +40,19 @@
 #include <IndustryStandard/Pci.h>
 #include <IndustryStandard/Acpi.h>
 
+struct lb_framebuffer {
+    UINT64 physical_address;
+    UINT64 x_resolution;
+    UINT64 y_resolution;
+    UINT64 bpp;
+};
+
+void hdgfx_adainit();
+void gma_test_debugprint();
+void gma_gfxinit(int* ok);
+int fill_lb_framebuffer(struct lb_framebuffer *framebuffer);
+struct lb_framebuffer* getFb();
+
 //
 // QEMU Video PCI Configuration Header values
 //
