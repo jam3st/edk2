@@ -612,7 +612,7 @@ EnableReadOnlyPageWriteProtect (
   // in this driver.
   //
   if (!IsInSmm ()) {
-    AsmWriteCr0 (AsmReadCr0 () | CR0_WP);
+ //   AsmWriteCr0 (AsmReadCr0 () | CR0_WP);
   }
 }
 
@@ -789,7 +789,7 @@ Done:
   // Restore page table write protection, if any.
   //
   if (IsWpEnabled) {
-    EnableReadOnlyPageWriteProtect ();
+   // EnableReadOnlyPageWriteProtect ();
   }
   return Status;
 }
@@ -837,6 +837,7 @@ AssignMemoryPageAttributes (
   BOOLEAN        IsSplitted;
 
 //  DEBUG((DEBUG_INFO, "AssignMemoryPageAttributes: 0x%lx - 0x%lx (0x%lx)\n", BaseAddress, Length, Attributes));
+DebugPrint(0, "AssignMemoryPageAttributes: 0x%lx - 0x%lx (0x%lx)\n", BaseAddress, Length, Attributes);
   Status = ConvertMemoryPageAttributes (PagingContext, BaseAddress, Length, Attributes, PageActionAssign, AllocatePagesFunc, &IsSplitted, &IsModified);
   if (!EFI_ERROR(Status)) {
     if ((PagingContext == NULL) && IsModified) {
@@ -1148,7 +1149,7 @@ InitializePageTableLib (
        PAGE_TABLE_LIB_PAGING_CONTEXT_IA32_X64_ATTRIBUTES_PAE) != 0) {
     DisableReadOnlyPageWriteProtect ();
     InitializePageTablePool (1);
-    EnableReadOnlyPageWriteProtect ();
+   // EnableReadOnlyPageWriteProtect ();
   }
 
   DEBUG ((DEBUG_INFO, "CurrentPagingContext:\n", CurrentPagingContext.MachineType));

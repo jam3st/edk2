@@ -78,6 +78,7 @@
   gEfiGraphicsOutputProtocolGuid                # PROTOCOL BY_START
   gEfiDevicePathProtocolGuid                    # PROTOCOL BY_START
   gEfiPciIoProtocolGuid                         # PROTOCOL TO_START
+  gEfiCpuArchProtocolGuid
 
 [Pcd]
   gOptionRomPkgTokenSpaceGuid.PcdDriverSupportedEfiVersion

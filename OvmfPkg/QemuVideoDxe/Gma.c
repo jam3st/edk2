@@ -1,7 +1,9 @@
-#include "Qemu.h"
 #include "haswell.h"
 #include "i915_reg.h"
+#include "Qemu.h"
 #include <Library/PciLib.h>
+#include <Protocol/Cpu.h>
+
 
 #define LP_GPE0_EN_4	0x9c
 #define LP_GPE0_STS_4	0x8c	/* Standard GPE */
@@ -247,32 +249,14 @@ static void mset(u8* dst, u8 pat, u64 size) {
 void gma_func0_init(QEMU_VIDEO_PRIVATE_DATA* dev) {
   EFI_STATUS s;
   EFI_ACPI_ADDRESS_SPACE_DESCRIPTOR *BarDesc;
-  UINT16 command;
+  UINT16 deviceId;
+  EFI_CPU_ARCH_PROTOCOL     *cpu;
+
   static int once = 0;
   static int lightup_ok = 0;
   if(once++ != 0) {
     return;
   }
-  u16 deviceId = 0xffffu;
-  dev->PciIo->Pci.Read(
-                    dev->PciIo,
-                    EfiPciIoWidthUint16,
-                    PCI_COMMAND,
-                    1,
-                    &command
-                    );
-   command |= PCI_COMMAND_MASTER | PCI_COMMAND_MEMORY | PCI_COMMAND_IO;
-   command ^= PCI_COMMAND_MASTER;
-   s = dev->PciIo->Pci.Write (
-                    dev->PciIo,
-                    EfiPciIoWidthUint16,
-                    PCI_COMMAND,
-                    1,
-                    &command
-                    );
-
-
-  DebugPrint(0, "Attribute set %d\n", s);
   s = dev->PciIo->GetBarAttributes (dev->PciIo, PCI_BAR_IDX0, NULL, (VOID**) &BarDesc);
   /* Get a Memory address for mapping the Grant Table. */
   DebugPrint(0, "BAR0: BAR at %LX len %x %x\n", BarDesc->AddrRangeMin, BarDesc->AddrLen, BarDesc->AddrTranslationOffset);
@@ -280,10 +264,16 @@ void gma_func0_init(QEMU_VIDEO_PRIVATE_DATA* dev) {
   s = dev->PciIo->GetBarAttributes (dev->PciIo, PCI_BAR_IDX1, NULL, (VOID**) &BarDesc);
   /* Get a Memory address for mapping the Grant Table. */
   DebugPrint(0, "BAR2: BAR at %LX len %x %x\n", BarDesc->AddrRangeMin, BarDesc->AddrLen, BarDesc->AddrTranslationOffset);
+  DebugPrint(0, "BAR2: set WC %s\n", s);
+
   DebugPrint(0, "GTT BASE is %d %16llx\n", s, gtt_res_base);
   dev->PciIo->Pci.Read (dev->PciIo, EfiPciIoWidthUint16, PCI_DEVICE_ID_OFFSET, 1, &deviceId);
   DebugPrint(0, "GTT BASE devid %4x\n", deviceId);
-
+  
+  s = gBS->LocateProtocol (&gEfiCpuArchProtocolGuid, NULL, (VOID **) &cpu);
+  DebugPrint(0, "CPU Protocol %d\n", s);
+  s = cpu->SetMemoryAttributes(cpu, BarDesc->AddrRangeMin, BarDesc->AddrLen, EFI_MEMORY_WC | EFI_MEMORY_WB );
+  DebugPrint(0, "Attributes is %d\n", s);
   hdgfx_adainit();
   gma_pm_init_pre_vbios();
   gma_gfxinit(&lightup_ok);
