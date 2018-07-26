@@ -17,7 +17,7 @@
 [Defines]
   INF_VERSION                    = 0x00010005
   BASE_NAME                      = GmaVideoDxe
-  FILE_GUID                      = e3752948-b9a1-4770-90c4-df41c38986be
+  FILE_GUID                      = 2f990573-745b-4dde-982a-68442d28abc4
   MODULE_TYPE                    = UEFI_DRIVER
   VERSION_STRING                 = 1.0
 
@@ -25,6 +25,7 @@
 
 
 [Sources.common]
+  ComponentName.c
   Driver.c
   DriverSupportedEfiVersion.c
   Gop.c

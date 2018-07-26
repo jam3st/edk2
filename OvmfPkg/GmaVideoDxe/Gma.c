@@ -271,7 +271,7 @@ static void mset(u8* dst, u8 pat, u64 size) {
     }
 }
 
-void gma_func0_init(QEMU_VIDEO_PRIVATE_DATA* dev) {
+void gma_func0_init(GMA_VIDEO_PRIVATE_DATA* dev) {
   EFI_STATUS s;
   EFI_ACPI_ADDRESS_SPACE_DESCRIPTOR *BarDesc;
   UINT16 deviceId;

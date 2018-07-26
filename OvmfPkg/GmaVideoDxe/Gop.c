@@ -1,5 +1,5 @@
 /** @file
-  Graphics Output Protocol functions for the QEMU video controller.
+  Graphics Output Protocol functions for the GMA video controller.
 
   Copyright (c) 2007 - 2018, Intel Corporation. All rights reserved.<BR>
 
@@ -18,8 +18,8 @@
 
 STATIC
 VOID
-QemuVideoCompleteModeInfo (
-  IN  QEMU_VIDEO_MODE_DATA           *ModeData,
+GmaVideoCompleteModeInfo (
+  IN  GMA_VIDEO_MODE_DATA           *ModeData,
   OUT EFI_GRAPHICS_OUTPUT_MODE_INFORMATION  *Info
   )
 {
@@ -46,14 +46,14 @@ QemuVideoCompleteModeInfo (
 
 STATIC
 EFI_STATUS
-QemuVideoCompleteModeData (
-  IN  QEMU_VIDEO_PRIVATE_DATA           *Private,
+GmaVideoCompleteModeData (
+  IN  GMA_VIDEO_PRIVATE_DATA           *Private,
   OUT EFI_GRAPHICS_OUTPUT_PROTOCOL_MODE *Mode
   )
 {
   EFI_GRAPHICS_OUTPUT_MODE_INFORMATION  *Info;
  // EFI_ACPI_ADDRESS_SPACE_DESCRIPTOR     *FrameBufDesc;
-  QEMU_VIDEO_MODE_DATA           *ModeData;
+  GMA_VIDEO_MODE_DATA           *ModeData;
   struct lb_framebuffer* fb = getFb();
 
 
@@ -65,7 +65,7 @@ QemuVideoCompleteModeData (
   Info = Mode->Info;
   Info->HorizontalResolution = fb->x_resolution;
   Info->VerticalResolution = fb->y_resolution;
-  QemuVideoCompleteModeInfo (ModeData, Info);
+  GmaVideoCompleteModeInfo (ModeData, Info);
 
 #if 0 
   Private->PciIo->GetBarAttributes (
@@ -94,7 +94,7 @@ QemuVideoCompleteModeData (
 //
 EFI_STATUS
 EFIAPI
-QemuVideoGraphicsOutputQueryMode (
+GmaVideoGraphicsOutputQueryMode (
   IN  EFI_GRAPHICS_OUTPUT_PROTOCOL          *This,
   IN  UINT32                                ModeNumber,
   OUT UINTN                                 *SizeOfInfo,
@@ -121,10 +121,10 @@ Routine Description:
 
 --*/
 {
-  QEMU_VIDEO_PRIVATE_DATA  *Private;
-  QEMU_VIDEO_MODE_DATA     *ModeData;
+  GMA_VIDEO_PRIVATE_DATA  *Private;
+  GMA_VIDEO_MODE_DATA     *ModeData;
 
-  Private = QEMU_VIDEO_PRIVATE_DATA_FROM_GRAPHICS_OUTPUT_THIS (This);
+  Private = GMA_VIDEO_PRIVATE_DATA_FROM_GRAPHICS_OUTPUT_THIS (This);
 
   if (Info == NULL || SizeOfInfo == NULL || ModeNumber >= This->Mode->MaxMode) {
     return EFI_INVALID_PARAMETER;
@@ -140,24 +140,24 @@ Routine Description:
   ModeData = &Private->ModeData[ModeNumber];
   (*Info)->HorizontalResolution = ModeData->HorizontalResolution;
   (*Info)->VerticalResolution   = ModeData->VerticalResolution;
-  QemuVideoCompleteModeInfo (ModeData, *Info);
+  GmaVideoCompleteModeInfo (ModeData, *Info);
 
   return EFI_SUCCESS;
 }
 
 EFI_STATUS
 EFIAPI
-QemuVideoGraphicsOutputSetMode (
+GmaVideoGraphicsOutputSetMode (
   IN  EFI_GRAPHICS_OUTPUT_PROTOCOL *This,
   IN  UINT32                       ModeNumber
   )
 {
-  QEMU_VIDEO_PRIVATE_DATA       *Private;
-  QEMU_VIDEO_MODE_DATA          *ModeData;
+  GMA_VIDEO_PRIVATE_DATA       *Private;
+  GMA_VIDEO_MODE_DATA          *ModeData;
   RETURN_STATUS                 Status;
   EFI_GRAPHICS_OUTPUT_BLT_PIXEL Black;
 
-  Private = QEMU_VIDEO_PRIVATE_DATA_FROM_GRAPHICS_OUTPUT_THIS (This);
+  Private = GMA_VIDEO_PRIVATE_DATA_FROM_GRAPHICS_OUTPUT_THIS (This);
 
   if (ModeNumber >= This->Mode->MaxMode) {
     return EFI_UNSUPPORTED;
@@ -170,7 +170,7 @@ QemuVideoGraphicsOutputSetMode (
   This->Mode->Info->VerticalResolution = ModeData->VerticalResolution;
   This->Mode->SizeOfInfo = sizeof(EFI_GRAPHICS_OUTPUT_MODE_INFORMATION);
 
-  QemuVideoCompleteModeData (Private, This->Mode);
+  GmaVideoCompleteModeData (Private, This->Mode);
 
   //
   // Re-initialize the frame buffer configure when mode changes.
@@ -224,7 +224,7 @@ QemuVideoGraphicsOutputSetMode (
 
 EFI_STATUS
 EFIAPI
-QemuVideoGraphicsOutputBlt (
+GmaVideoGraphicsOutputBlt (
   IN  EFI_GRAPHICS_OUTPUT_PROTOCOL          *This,
   IN  EFI_GRAPHICS_OUTPUT_BLT_PIXEL         *BltBuffer, OPTIONAL
   IN  EFI_GRAPHICS_OUTPUT_BLT_OPERATION     BltOperation,
@@ -267,9 +267,9 @@ Returns:
 {
   EFI_STATUS                      Status;
   EFI_TPL                         OriginalTPL;
-  QEMU_VIDEO_PRIVATE_DATA         *Private;
+  GMA_VIDEO_PRIVATE_DATA         *Private;
 
-  Private = QEMU_VIDEO_PRIVATE_DATA_FROM_GRAPHICS_OUTPUT_THIS (This);
+  Private = GMA_VIDEO_PRIVATE_DATA_FROM_GRAPHICS_OUTPUT_THIS (This);
   //
   // We have to raise to TPL Notify, so we make an atomic write the frame buffer.
   // We would not want a timer based event (Cursor, ...) to come in while we are
@@ -307,8 +307,8 @@ Returns:
 }
 
 EFI_STATUS
-QemuVideoGraphicsOutputConstructor (
-  QEMU_VIDEO_PRIVATE_DATA  *Private
+GmaVideoGraphicsOutputConstructor (
+  GMA_VIDEO_PRIVATE_DATA  *Private
   )
 {
   EFI_STATUS                   Status;
@@ -316,9 +316,9 @@ QemuVideoGraphicsOutputConstructor (
 
 
   GraphicsOutput            = &Private->GraphicsOutput;
-  GraphicsOutput->QueryMode = QemuVideoGraphicsOutputQueryMode;
-  GraphicsOutput->SetMode   = QemuVideoGraphicsOutputSetMode;
-  GraphicsOutput->Blt       = QemuVideoGraphicsOutputBlt;
+  GraphicsOutput->QueryMode = GmaVideoGraphicsOutputQueryMode;
+  GraphicsOutput->SetMode   = GmaVideoGraphicsOutputSetMode;
+  GraphicsOutput->Blt       = GmaVideoGraphicsOutputBlt;
 
   //
   // Initialize the private data
@@ -344,7 +344,7 @@ QemuVideoGraphicsOutputConstructor (
   Private->GraphicsOutput.Mode->Mode    = 0;
   Private->FrameBufferBltConfigure      = NULL;
   Private->FrameBufferBltConfigureSize  = 0;
-DebugPrint(0, "\n QemuVideoGraphicsOutputConstructor  setting mode\n");
+DebugPrint(0, "\n GmaVideoGraphicsOutputConstructor  setting mode\n");
   //
   // Initialize the hardware
   //
@@ -366,8 +366,8 @@ FreeMode:
 }
 
 EFI_STATUS
-QemuVideoGraphicsOutputDestructor (
-  QEMU_VIDEO_PRIVATE_DATA  *Private
+GmaVideoGraphicsOutputDestructor (
+  GMA_VIDEO_PRIVATE_DATA  *Private
   )
 /*++
 

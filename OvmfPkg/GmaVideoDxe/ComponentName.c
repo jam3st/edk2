@@ -1,10 +1,11 @@
 /** @file
-  GMA Video Controller Driver
+  Component name for the QEMU video controller.
 
-  Copyright (c) 2006 - 2016, Intel Corporation. All rights reserved.<BR>
+  Copyright (c) 2006 - 2010, Intel Corporation. All rights reserved.<BR>
+
   This program and the accompanying materials
   are licensed and made available under the terms and conditions of the BSD License
-  which accompanies this distribution.  The full text of the license may be found at
+  which accompanies this distribution. The full text of the license may be found at
   http://opensource.org/licenses/bsd-license.php
 
   THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
@@ -12,178 +13,37 @@
 
 **/
 
+#include "Gma.h"
+
 //
-// GMA Video Controller Driver
+// EFI Component Name Protocol
 //
-
-#ifndef _GMA_H_
-#define _GMA_H_
-
-
-#include <Uefi.h>
-#include <Protocol/GraphicsOutput.h>
-#include <Protocol/PciIo.h>
-#include <Protocol/DriverSupportedEfiVersion.h>
-#include <Protocol/DevicePath.h>
-
-#include <Library/DebugLib.h>
-#include <Library/UefiDriverEntryPoint.h>
-#include <Library/UefiLib.h>
-#include <Library/PcdLib.h>
-#include <Library/MemoryAllocationLib.h>
-#include <Library/UefiBootServicesTableLib.h>
-#include <Library/BaseMemoryLib.h>
-#include <Library/DevicePathLib.h>
-#include <Library/TimerLib.h>
-#include <Library/FrameBufferBltLib.h>
-
-#include <IndustryStandard/Pci.h>
-#include <IndustryStandard/Acpi.h>
-
-struct lb_framebuffer {
-    UINT64 physical_address;
-    UINT64 x_resolution;
-    UINT64 y_resolution;
-    UINT64 bpp;
+GLOBAL_REMOVE_IF_UNREFERENCED EFI_COMPONENT_NAME_PROTOCOL  gGmaVideoComponentName = {
+  GmaVideoComponentNameGetDriverName,
+  GmaVideoComponentNameGetControllerName,
+  "eng"
 };
 
-// GMA Vide Graphical Mode Data
 //
-typedef struct {
-  UINT32  InternalModeIndex; // points into card-specific mode table
-  UINT32  HorizontalResolution;
-  UINT32  VerticalResolution;
-  UINT32  ColorDepth;
-} GMA_VIDEO_MODE_DATA;
-
-#define PIXEL_RED_SHIFT   0
-#define PIXEL_GREEN_SHIFT 3
-#define PIXEL_BLUE_SHIFT  6
-
-#define PIXEL_RED_MASK    (BIT7 | BIT6 | BIT5)
-#define PIXEL_GREEN_MASK  (BIT4 | BIT3 | BIT2)
-#define PIXEL_BLUE_MASK   (BIT1 | BIT0)
-
-#define PIXEL_TO_COLOR_BYTE(pixel, mask, shift) ((UINT8) ((pixel & mask) << shift))
-#define PIXEL_TO_RED_BYTE(pixel) PIXEL_TO_COLOR_BYTE(pixel, PIXEL_RED_MASK, PIXEL_RED_SHIFT)
-#define PIXEL_TO_GREEN_BYTE(pixel) PIXEL_TO_COLOR_BYTE(pixel, PIXEL_GREEN_MASK, PIXEL_GREEN_SHIFT)
-#define PIXEL_TO_BLUE_BYTE(pixel) PIXEL_TO_COLOR_BYTE(pixel, PIXEL_BLUE_MASK, PIXEL_BLUE_SHIFT)
-
-#define RGB_BYTES_TO_PIXEL(Red, Green, Blue) \
-  (UINT8) ( (((Red) >> PIXEL_RED_SHIFT) & PIXEL_RED_MASK) | \
-            (((Green) >> PIXEL_GREEN_SHIFT) & PIXEL_GREEN_MASK) | \
-            (((Blue) >> PIXEL_BLUE_SHIFT) & PIXEL_BLUE_MASK) )
-
-#define PIXEL24_RED_MASK    0x00ff0000
-#define PIXEL24_GREEN_MASK  0x0000ff00
-#define PIXEL24_BLUE_MASK   0x000000ff
-
-typedef enum {
-  GMA_VIDEO_INTEL_HDG = 1
-} GMA_VIDEO_VARIANT;
-
-typedef struct {
-  UINT8                                 SubClass;
-  UINT16                                VendorId;
-  UINT16                                DeviceId;
-  GMA_VIDEO_VARIANT                    Variant;
-  CHAR16                                *Name;
-} GMA_VIDEO_CARD;
-
-typedef struct {
-  UINT64                                Signature;
-  EFI_HANDLE                            Handle;
-  EFI_PCI_IO_PROTOCOL                   *PciIo;
-  UINT64                                OriginalPciAttributes;
-  EFI_GRAPHICS_OUTPUT_PROTOCOL          GraphicsOutput;
-  EFI_DEVICE_PATH_PROTOCOL              *GopDevicePath;
-
-  //
-  // The next two fields match the client-visible
-  // EFI_GRAPHICS_OUTPUT_PROTOCOL_MODE.MaxMode field.
-  //
-  UINTN                                 MaxMode;
-  GMA_VIDEO_MODE_DATA                  *ModeData;
-  EFI_GRAPHICS_OUTPUT_MODE_INFORMATION  *VmwareSvgaModeInfo;
-
-  GMA_VIDEO_VARIANT                    Variant;
-  FRAME_BUFFER_CONFIGURE                *FrameBufferBltConfigure;
-  UINTN                                 FrameBufferBltConfigureSize;
-  UINT8                                 FrameBufferVramBarIndex;
-  UINT16                                VmwareSvgaBasePort;
-} GMA_VIDEO_PRIVATE_DATA;
-
-#define GMA_VIDEO_PRIVATE_DATA_FROM_GRAPHICS_OUTPUT_THIS(a) \
-  CR(a, GMA_VIDEO_PRIVATE_DATA, GraphicsOutput, GMA_VIDEO_PRIVATE_DATA_SIGNATURE)
-
-
-extern EFI_DRIVER_BINDING_PROTOCOL                gGmaVideoDriverBinding;
-extern EFI_COMPONENT_NAME_PROTOCOL                gGmaVideoComponentName;
-extern EFI_COMPONENT_NAME2_PROTOCOL               gGmaVideoComponentName2;
-extern EFI_DRIVER_SUPPORTED_EFI_VERSION_PROTOCOL  gGmaVideoDriverSupportedEfiVersion;
-
-// Graphics Output Hardware abstraction internal worker functions
+// EFI Component Name 2 Protocol
 //
-EFI_STATUS
-GmaVideoGraphicsOutputConstructor (
-  GMA_VIDEO_PRIVATE_DATA  *Private
-  );
-
-EFI_STATUS
-GmaVideoGraphicsOutputDestructor (
-  GMA_VIDEO_PRIVATE_DATA  *Private
-  );
+GLOBAL_REMOVE_IF_UNREFERENCED EFI_COMPONENT_NAME2_PROTOCOL gGmaVideoComponentName2 = {
+  (EFI_COMPONENT_NAME2_GET_DRIVER_NAME) GmaVideoComponentNameGetDriverName,
+  (EFI_COMPONENT_NAME2_GET_CONTROLLER_NAME) GmaVideoComponentNameGetControllerName,
+  "en"
+};
 
 
-EFI_STATUS
-EFIAPI
-GmaVideoControllerDriverSupported (
-  IN EFI_DRIVER_BINDING_PROTOCOL  *This,
-  IN EFI_HANDLE                   Controller,
-  IN EFI_DEVICE_PATH_PROTOCOL     *RemainingDevicePath
-  );
+GLOBAL_REMOVE_IF_UNREFERENCED EFI_UNICODE_STRING_TABLE mGmaVideoDriverNameTable[] = {
+  { "eng;en", L"QEMU Video Driver" },
+  { NULL , NULL }
+};
 
-/**
-  TODO: Add function description
+GLOBAL_REMOVE_IF_UNREFERENCED EFI_UNICODE_STRING_TABLE mGmaVideoControllerNameTable[] = {
+  { "eng;en", L"QEMU Video PCI Adapter" },
+  { NULL , NULL }
+};
 
-  @param  This TODO: add argument description
-  @param  Controller TODO: add argument description
-  @param  RemainingDevicePath TODO: add argument description
-
-  TODO: add return values
-
-**/
-EFI_STATUS
-EFIAPI
-GmaVideoControllerDriverStart (
-  IN EFI_DRIVER_BINDING_PROTOCOL  *This,
-  IN EFI_HANDLE                   Controller,
-  IN EFI_DEVICE_PATH_PROTOCOL     *RemainingDevicePath
-  );
-
-/**
-  TODO: Add function description
-
-  @param  This TODO: add argument description
-  @param  Controller TODO: add argument description
-  @param  NumberOfChildren TODO: add argument description
-  @param  ChildHandleBuffer TODO: add argument description
-
-  TODO: add return values
-
-**/
-EFI_STATUS
-EFIAPI
-GmaVideoControllerDriverStop (
-  IN EFI_DRIVER_BINDING_PROTOCOL  *This,
-  IN EFI_HANDLE                   Controller,
-  IN UINTN                        NumberOfChildren,
-  IN EFI_HANDLE                   *ChildHandleBuffer
-  );
-
-//
-// EFI Component Name Functions
-//
 /**
   Retrieves a Unicode string that is the user readable name of the driver.
 
@@ -229,8 +89,16 @@ GmaVideoComponentNameGetDriverName (
   IN  EFI_COMPONENT_NAME_PROTOCOL  *This,
   IN  CHAR8                        *Language,
   OUT CHAR16                       **DriverName
-  );
-
+  )
+{
+  return LookupUnicodeString2 (
+           Language,
+           This->SupportedLanguages,
+           mGmaVideoDriverNameTable,
+           DriverName,
+           (BOOLEAN)(This == &gGmaVideoComponentName)
+           );
+}
 
 /**
   Retrieves a Unicode string that is the user readable name of the controller
@@ -308,19 +176,37 @@ GmaVideoComponentNameGetControllerName (
   IN  EFI_HANDLE                                      ChildHandle        OPTIONAL,
   IN  CHAR8                                           *Language,
   OUT CHAR16                                          **ControllerName
-  );
+  )
+{
+  EFI_STATUS                      Status;
 
-EFI_STATUS
-GmaVideoHdGfxModeSetup (
-  GMA_VIDEO_PRIVATE_DATA *Private
-  );
+  //
+  // This is a device driver, so ChildHandle must be NULL.
+  //
+  if (ChildHandle != NULL) {
+    return EFI_UNSUPPORTED;
+  }
 
-void hdgfx_adainit();
-void gma_test_debugprint();
-void gma_gfxinit(int* ok);
-void gma_func0_init(GMA_VIDEO_PRIVATE_DATA* dev);
-int fill_lb_framebuffer(struct lb_framebuffer *framebuffer);
-struct lb_framebuffer* getFb();
+  //
+  // Make sure this driver is currently managing ControllHandle
+  //
+  Status = EfiTestManagedDevice (
+             ControllerHandle,
+             gGmaVideoDriverBinding.DriverBindingHandle,
+             &gEfiPciIoProtocolGuid
+             );
+  if (EFI_ERROR (Status)) {
+    return Status;
+  }
 
-
-#endif
+  //
+  // Get the QEMU Video's Device structure
+  //
+  return LookupUnicodeString2 (
+           Language,
+           This->SupportedLanguages,
+           mGmaVideoControllerNameTable,
+           ControllerName,
+           (BOOLEAN)(This == &gGmaVideoComponentName)
+           );
+}

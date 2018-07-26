@@ -1,30 +1,30 @@
 #include <IndustryStandard/Acpi.h>
 #include "Gma.h"
 
-EFI_DRIVER_BINDING_PROTOCOL gQemuVideoDriverBinding = {
-  QemuVideoControllerDriverSupported,
-  QemuVideoControllerDriverStart,
-  QemuVideoControllerDriverStop,
+EFI_DRIVER_BINDING_PROTOCOL gGmaVideoDriverBinding = {
+  GmaVideoControllerDriverSupported,
+  GmaVideoControllerDriverStart,
+  GmaVideoControllerDriverStop,
   0x10,
   NULL,
   NULL
 };
 
 
-QEMU_VIDEO_CARD gQemuVideoCardList[] = {
+GMA_VIDEO_CARD gGmaVideoCardList[] = {
     {
         PCI_CLASS_DISPLAY_VGA,
         0x8086,
         0x0412,
-        QEMU_VIDEO_INTEL_HDG,
+        GMA_VIDEO_INTEL_HDG,
         L"Intel HD Graphics"
     },{
         0 /* end of list */
     }
 };
 
-static QEMU_VIDEO_CARD*
-QemuVideoDetect(
+static GMA_VIDEO_CARD*
+GmaVideoDetect(
   IN UINT8 SubClass,
   IN UINT16 VendorId,
   IN UINT16 DeviceId
@@ -32,11 +32,11 @@ QemuVideoDetect(
 {
   UINTN Index = 0;
 
-  while (gQemuVideoCardList[Index].VendorId != 0) {
-    if (gQemuVideoCardList[Index].SubClass == SubClass &&
-        gQemuVideoCardList[Index].VendorId == VendorId &&
-        gQemuVideoCardList[Index].DeviceId == DeviceId) {
-      return gQemuVideoCardList + Index;
+  while (gGmaVideoCardList[Index].VendorId != 0) {
+    if (gGmaVideoCardList[Index].SubClass == SubClass &&
+        gGmaVideoCardList[Index].VendorId == VendorId &&
+        gGmaVideoCardList[Index].DeviceId == DeviceId) {
+      return gGmaVideoCardList + Index;
     }
     Index++;
   }
@@ -66,7 +66,7 @@ static void memcpy(void *dest, const void *src, int n)
 **/
 EFI_STATUS
 EFIAPI
-QemuVideoControllerDriverSupported (
+GmaVideoControllerDriverSupported (
   IN EFI_DRIVER_BINDING_PROTOCOL    *This,
   IN EFI_HANDLE                     Controller,
   IN EFI_DEVICE_PATH_PROTOCOL       *RemainingDevicePath
@@ -75,7 +75,7 @@ QemuVideoControllerDriverSupported (
   EFI_STATUS          Status;
   EFI_PCI_IO_PROTOCOL *PciIo;
   PCI_TYPE00          Pci;
-  QEMU_VIDEO_CARD     *Card;
+  GMA_VIDEO_CARD     *Card;
 
   //
   // Open the PCI I/O Protocol
@@ -110,9 +110,9 @@ QemuVideoControllerDriverSupported (
   if (!IS_PCI_DISPLAY (&Pci)) {
     goto Done;
   }
-  Card = QemuVideoDetect(Pci.Hdr.ClassCode[1], Pci.Hdr.VendorId, Pci.Hdr.DeviceId);
+  Card = GmaVideoDetect(Pci.Hdr.ClassCode[1], Pci.Hdr.VendorId, Pci.Hdr.DeviceId);
   if (Card != NULL) {
-    DebugPrint(0, "QemuVideo: %s detected\n", Card->Name);
+    DebugPrint(0, "GmaVideo: %s detected\n", Card->Name);
     Status = EFI_SUCCESS;
   }
 
@@ -145,7 +145,7 @@ Done:
 **/
 EFI_STATUS
 EFIAPI
-QemuVideoControllerDriverStart (
+GmaVideoControllerDriverStart (
   IN EFI_DRIVER_BINDING_PROTOCOL    *This,
   IN EFI_HANDLE                     Controller,
   IN EFI_DEVICE_PATH_PROTOCOL       *RemainingDevicePath
@@ -153,23 +153,23 @@ QemuVideoControllerDriverStart (
 {
   EFI_TPL                           OldTpl;
   EFI_STATUS                        Status;
-  QEMU_VIDEO_PRIVATE_DATA           *Private;
+  GMA_VIDEO_PRIVATE_DATA           *Private;
   EFI_DEVICE_PATH_PROTOCOL          *ParentDevicePath;
   ACPI_ADR_DEVICE_PATH              AcpiDeviceNode;
   PCI_TYPE00                        Pci;
-  QEMU_VIDEO_CARD                   *Card;
+  GMA_VIDEO_CARD                   *Card;
   EFI_PCI_IO_PROTOCOL               *ChildPciIo;
 unsigned char x[256];
 
 int i;
 
   OldTpl = gBS->RaiseTPL (TPL_CALLBACK);
-DebugPrint(0, "QemuVideoControllerDriverStart\n");
+DebugPrint(0, "GmaVideoControllerDriverStart\n");
 
   //
   // Allocate Private context data for GOP inteface.
   //
-  Private = AllocateZeroPool (sizeof (QEMU_VIDEO_PRIVATE_DATA));
+  Private = AllocateZeroPool (sizeof (GMA_VIDEO_PRIVATE_DATA));
   if (Private == NULL) {
     Status = EFI_OUT_OF_RESOURCES;
     goto RestoreTpl;
@@ -221,7 +221,7 @@ memcpy(&Pci, &x[0], sizeof(Pci));
   //
   // Determine card variant.
   //
-  Card = QemuVideoDetect(Pci.Hdr.ClassCode[1], Pci.Hdr.VendorId, Pci.Hdr.DeviceId);
+  Card = GmaVideoDetect(Pci.Hdr.ClassCode[1], Pci.Hdr.VendorId, Pci.Hdr.DeviceId);
 DebugPrint(0, "Video Detect %p\n", Card);
   if (Card == NULL) {
     Status = EFI_DEVICE_ERROR;
@@ -311,7 +311,7 @@ DebugPrint(0, "Protocol installed %d\n", Status);
     goto FreeGopDevicePath;
   }
 
-  Status = QemuVideoHdGfxModeSetup(Private);
+  Status = GmaVideoHdGfxModeSetup(Private);
   if (EFI_ERROR (Status)) {
 DebugPrint(0, "Intel HD ERROR %d\n", Status);
     goto UninstallGopDevicePath;
@@ -320,9 +320,9 @@ DebugPrint(0, "Intel HD ERROR %d\n", Status);
   //
   // Start the GOP software stack.
   //
-  Status = QemuVideoGraphicsOutputConstructor (Private);
+  Status = GmaVideoGraphicsOutputConstructor (Private);
   if (EFI_ERROR (Status)) {
-DebugPrint(0, "QemuVideoGraphicsOutputConstructor %d\n", Status);
+DebugPrint(0, "GmaVideoGraphicsOutputConstructor %d\n", Status);
     goto FreeModeData;
   }
 
@@ -333,11 +333,11 @@ DebugPrint(0, "QemuVideoGraphicsOutputConstructor %d\n", Status);
                   NULL
                   );
   if (EFI_ERROR (Status)) {
-DebugPrint(0, "QemuVideoGraphicsOutputConstructor failed %d\n", Status);
-    goto DestructQemuVideoGraphics;
+DebugPrint(0, "GmaVideoGraphicsOutputConstructor failed %d\n", Status);
+    goto DestructGmaVideoGraphics;
   }
 
-DebugPrint(0, "QemuVideoGraphicsOutputConstructor passed %d\n", Status);
+DebugPrint(0, "GmaVideoGraphicsOutputConstructor passed %d\n", Status);
   //
   // Reference parent handle from child handle.
   //
@@ -360,8 +360,8 @@ UninstallGop:
   gBS->UninstallProtocolInterface (Private->Handle,
          &gEfiGraphicsOutputProtocolGuid, &Private->GraphicsOutput);
 
-DestructQemuVideoGraphics:
-  QemuVideoGraphicsOutputDestructor (Private);
+DestructGmaVideoGraphics:
+  GmaVideoGraphicsOutputDestructor (Private);
 
 FreeModeData:
   FreePool (Private->ModeData);
@@ -409,7 +409,7 @@ RestoreTpl:
 **/
 EFI_STATUS
 EFIAPI
-QemuVideoControllerDriverStop (
+GmaVideoControllerDriverStop (
   IN EFI_DRIVER_BINDING_PROTOCOL    *This,
   IN EFI_HANDLE                     Controller,
   IN UINTN                          NumberOfChildren,
@@ -419,7 +419,7 @@ QemuVideoControllerDriverStop (
   EFI_GRAPHICS_OUTPUT_PROTOCOL    *GraphicsOutput;
 
   EFI_STATUS                      Status;
-  QEMU_VIDEO_PRIVATE_DATA  *Private;
+  GMA_VIDEO_PRIVATE_DATA  *Private;
 
   if (NumberOfChildren == 0) {
     //
@@ -454,10 +454,10 @@ QemuVideoControllerDriverStop (
   //
   // Get our private context information
   //
-  Private = QEMU_VIDEO_PRIVATE_DATA_FROM_GRAPHICS_OUTPUT_THIS (GraphicsOutput);
+  Private = GMA_VIDEO_PRIVATE_DATA_FROM_GRAPHICS_OUTPUT_THIS (GraphicsOutput);
   ASSERT (Private->Handle == ChildHandleBuffer[0]);
 
-  QemuVideoGraphicsOutputDestructor (Private);
+  GmaVideoGraphicsOutputDestructor (Private);
   //
   // Remove the GOP protocol interface from the system
   //
@@ -517,10 +517,10 @@ InitializeGmaVideo (
   Status = EfiLibInstallDriverBindingComponentName2 (
              ImageHandle,
              SystemTable,
-             &gQemuVideoDriverBinding,
+             &gGmaVideoDriverBinding,
              ImageHandle,
-             &gQemuVideoComponentName,
-             &gQemuVideoComponentName2
+             &gGmaVideoComponentName,
+             &gGmaVideoComponentName2
              );
   ASSERT_EFI_ERROR (Status);
 
@@ -528,11 +528,11 @@ InitializeGmaVideo (
   // Install EFI Driver Supported EFI Version Protocol required for
   // EFI drivers that are on PCI and other plug in cards.
   //
-  gQemuVideoDriverSupportedEfiVersion.FirmwareVersion = PcdGet32 (PcdDriverSupportedEfiVersion);
+  gGmaVideoDriverSupportedEfiVersion.FirmwareVersion = PcdGet32 (PcdDriverSupportedEfiVersion);
   Status = gBS->InstallMultipleProtocolInterfaces (
                   &ImageHandle,
                   &gEfiDriverSupportedEfiVersionProtocolGuid,
-                  &gQemuVideoDriverSupportedEfiVersion,
+                  &gGmaVideoDriverSupportedEfiVersion,
                   NULL
                   );
   ASSERT_EFI_ERROR (Status);

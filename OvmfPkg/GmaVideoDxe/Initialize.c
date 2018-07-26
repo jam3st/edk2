@@ -2,8 +2,8 @@
 #include "Gma.h"
 
 EFI_STATUS
-QemuVideoHdGfxModeSetup (
-  QEMU_VIDEO_PRIVATE_DATA *Private
+GmaVideoHdGfxModeSetup (
+  GMA_VIDEO_PRIVATE_DATA *Private
   )
 {
   struct lb_framebuffer*fb = getFb();
