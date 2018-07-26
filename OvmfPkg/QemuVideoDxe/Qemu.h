@@ -47,21 +47,6 @@ struct lb_framebuffer {
     UINT64 bpp;
 };
 
-void hdgfx_adainit();
-void gma_test_debugprint();
-void gma_gfxinit(int* ok);
-int fill_lb_framebuffer(struct lb_framebuffer *framebuffer);
-struct lb_framebuffer* getFb();
-
-//
-// QEMU Video PCI Configuration Header values
-//
-#define CIRRUS_LOGIC_VENDOR_ID                0x1013
-#define CIRRUS_LOGIC_5430_DEVICE_ID           0x00a8
-#define CIRRUS_LOGIC_5430_ALTERNATE_DEVICE_ID 0x00a0
-#define CIRRUS_LOGIC_5446_DEVICE_ID           0x00b8
-
-//
 // QEMU Vide Graphical Mode Data
 //
 typedef struct {
@@ -93,20 +78,8 @@ typedef struct {
 #define PIXEL24_GREEN_MASK  0x0000ff00
 #define PIXEL24_BLUE_MASK   0x000000ff
 
-#define GRAPHICS_OUTPUT_INVALIDE_MODE_NUMBER  0xffff
-
-//
-// QEMU Video Private Data Structure
-//
-#define QEMU_VIDEO_PRIVATE_DATA_SIGNATURE  SIGNATURE_32 ('Q', 'V', 'I', 'D')
-
 typedef enum {
-  QEMU_VIDEO_CIRRUS_5430 = 1,
-  QEMU_VIDEO_CIRRUS_5446,
-  QEMU_VIDEO_BOCHS,
-  QEMU_VIDEO_BOCHS_MMIO,
-  QEMU_VIDEO_VMWARE_SVGA,
-  QEMU_VIDEO_INTEL_HDG,
+  QEMU_VIDEO_INTEL_HDG = 1
 } QEMU_VIDEO_VARIANT;
 
 typedef struct {
@@ -180,52 +153,6 @@ extern EFI_COMPONENT_NAME_PROTOCOL                gQemuVideoComponentName;
 extern EFI_COMPONENT_NAME2_PROTOCOL               gQemuVideoComponentName2;
 extern EFI_DRIVER_SUPPORTED_EFI_VERSION_PROTOCOL  gQemuVideoDriverSupportedEfiVersion;
 
-//
-// Io Registers defined by VGA
-//
-#define CRTC_ADDRESS_REGISTER   0x3d4
-#define CRTC_DATA_REGISTER      0x3d5
-#define SEQ_ADDRESS_REGISTER    0x3c4
-#define SEQ_DATA_REGISTER       0x3c5
-#define GRAPH_ADDRESS_REGISTER  0x3ce
-#define GRAPH_DATA_REGISTER     0x3cf
-#define ATT_ADDRESS_REGISTER    0x3c0
-#define MISC_OUTPUT_REGISTER    0x3c2
-#define INPUT_STATUS_1_REGISTER 0x3da
-#define DAC_PIXEL_MASK_REGISTER 0x3c6
-#define PALETTE_INDEX_REGISTER  0x3c8
-#define PALETTE_DATA_REGISTER   0x3c9
-
-#define VBE_DISPI_IOPORT_INDEX           0x01CE
-#define VBE_DISPI_IOPORT_DATA            0x01D0
-
-#define VBE_DISPI_INDEX_ID               0x0
-#define VBE_DISPI_INDEX_XRES             0x1
-#define VBE_DISPI_INDEX_YRES             0x2
-#define VBE_DISPI_INDEX_BPP              0x3
-#define VBE_DISPI_INDEX_ENABLE           0x4
-#define VBE_DISPI_INDEX_BANK             0x5
-#define VBE_DISPI_INDEX_VIRT_WIDTH       0x6
-#define VBE_DISPI_INDEX_VIRT_HEIGHT      0x7
-#define VBE_DISPI_INDEX_X_OFFSET         0x8
-#define VBE_DISPI_INDEX_Y_OFFSET         0x9
-#define VBE_DISPI_INDEX_VIDEO_MEMORY_64K 0xa
-
-#define VBE_DISPI_ID0                    0xB0C0
-#define VBE_DISPI_ID1                    0xB0C1
-#define VBE_DISPI_ID2                    0xB0C2
-#define VBE_DISPI_ID3                    0xB0C3
-#define VBE_DISPI_ID4                    0xB0C4
-#define VBE_DISPI_ID5                    0xB0C5
-
-#define VBE_DISPI_DISABLED               0x00
-#define VBE_DISPI_ENABLED                0x01
-#define VBE_DISPI_GETCAPS                0x02
-#define VBE_DISPI_8BIT_DAC               0x20
-#define VBE_DISPI_LFB_ENABLED            0x40
-#define VBE_DISPI_NOCLEARMEM             0x80
-
-//
 // Graphics Output Hardware abstraction internal worker functions
 //
 EFI_STATUS
@@ -239,19 +166,6 @@ QemuVideoGraphicsOutputDestructor (
   );
 
 
-//
-// EFI_DRIVER_BINDING_PROTOCOL Protocol Interface
-//
-/**
-  TODO: Add function description
-
-  @param  This TODO: add argument description
-  @param  Controller TODO: add argument description
-  @param  RemainingDevicePath TODO: add argument description
-
-  TODO: add return values
-
-**/
 EFI_STATUS
 EFIAPI
 QemuVideoControllerDriverSupported (
@@ -427,107 +341,17 @@ QemuVideoComponentNameGetControllerName (
   OUT CHAR16                                          **ControllerName
   );
 
-
-//
-// Local Function Prototypes
-//
-VOID
-InitializeCirrusGraphicsMode (
-  QEMU_VIDEO_PRIVATE_DATA  *Private,
-  QEMU_VIDEO_CIRRUS_MODES  *ModeData
-  );
-
-VOID
-InitializeBochsGraphicsMode (
-  QEMU_VIDEO_PRIVATE_DATA  *Private,
-  QEMU_VIDEO_BOCHS_MODES   *ModeData
-  );
-
-VOID
-SetPaletteColor (
-  QEMU_VIDEO_PRIVATE_DATA  *Private,
-  UINTN                           Index,
-  UINT8                           Red,
-  UINT8                           Green,
-  UINT8                           Blue
-  );
-
-VOID
-SetDefaultPalette (
-  QEMU_VIDEO_PRIVATE_DATA  *Private
-  );
-
-VOID
-DrawLogo (
-  QEMU_VIDEO_PRIVATE_DATA  *Private,
-  UINTN                           ScreenWidth,
-  UINTN                           ScreenHeight
-  );
-
-VOID
-BochsWrite (
-  QEMU_VIDEO_PRIVATE_DATA  *Private,
-  UINT16                   Reg,
-  UINT16                   Data
-  );
-
-UINT16
-BochsRead (
-  QEMU_VIDEO_PRIVATE_DATA  *Private,
-  UINT16                   Reg
-  );
-
-VOID
-VgaOutb (
-  QEMU_VIDEO_PRIVATE_DATA  *Private,
-  UINTN                    Reg,
-  UINT8                    Data
-  );
-
-EFI_STATUS
-QemuVideoCirrusModeSetup (
-  QEMU_VIDEO_PRIVATE_DATA  *Private
-  );
-
-EFI_STATUS
-QemuVideoBochsModeSetup (
-  QEMU_VIDEO_PRIVATE_DATA  *Private,
-  BOOLEAN                  IsQxl
-  );
-
-EFI_STATUS
-QemuVideoVmwareSvgaModeSetup (
-  QEMU_VIDEO_PRIVATE_DATA *Private
-  );
-
 EFI_STATUS
 QemuVideoHdGfxModeSetup (
   QEMU_VIDEO_PRIVATE_DATA *Private
   );
 
-VOID
-InstallVbeShim (
-  IN CONST CHAR16         *CardName,
-  IN EFI_PHYSICAL_ADDRESS FrameBufferBase
-  );
+void hdgfx_adainit();
+void gma_test_debugprint();
+void gma_gfxinit(int* ok);
+void gma_func0_init(QEMU_VIDEO_PRIVATE_DATA* dev);
+int fill_lb_framebuffer(struct lb_framebuffer *framebuffer);
+struct lb_framebuffer* getFb();
 
-VOID
-VmwareSvgaWrite (
-  QEMU_VIDEO_PRIVATE_DATA *Private,
-  UINT16                  Register,
-  UINT32                  Value
-  );
-
-UINT32
-VmwareSvgaRead (
-  QEMU_VIDEO_PRIVATE_DATA *Private,
-  UINT16                  Register
-  );
-
-VOID
-InitializeVmwareSvgaGraphicsMode (
-  QEMU_VIDEO_PRIVATE_DATA  *Private,
-  QEMU_VIDEO_BOCHS_MODES   *ModeData
-  );
 
 #endif

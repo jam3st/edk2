@@ -21,7 +21,7 @@
   MODULE_TYPE                    = UEFI_DRIVER
   VERSION_STRING                 = 1.0
 
-  ENTRY_POINT                    = InitializeQemuVideo
+  ENTRY_POINT                    = InitializeGmaVideo
 
 #
 # The following information is for reference only and not required by the build tools.
@@ -45,8 +45,6 @@
   UnalignedIoGcc.c    | GCC
   UnalignedIoIcc.c    | INTEL
   UnalignedIoMsc.c    | MSFT
-  VbeShim.c
-  VbeShim.h
   Gma.c
 
 [Sources.EBC]

@@ -13,6 +13,31 @@
 #define   TCOSCI_EN	(1 << 6)
 
 
+// Used by the HD Graphics Ada stuff
+struct mono_time {
+    long microseconds;
+};
+
+static struct monotonic_counter {
+    int initialized;
+    struct mono_time time;
+    UINT32 last_value;
+} mono_counter;
+
+static inline void mono_time_add_usecs(struct mono_time *mt, long us)
+{
+    mt->microseconds += us;
+}
+
+
+void timer_monotonic_get(struct mono_time *mt)
+{
+    MicroSecondDelay(2);
+    mono_time_add_usecs(&mono_counter.time, 2);
+    *mt = mono_counter.time;
+}
+
+
 
 static inline __attribute__((always_inline)) u32 read32( const volatile u32* addr)
 {

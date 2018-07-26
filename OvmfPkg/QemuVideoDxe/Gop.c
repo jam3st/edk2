@@ -44,12 +44,6 @@ QemuVideoCompleteModeInfo (
 }
 
 
-static void mset(UINT8* dst, UINT8 pat, UINT64 size) {
-    while(size-- != 0) {
-        dst[size] = pat;
-    }   
-}
-
 STATIC
 EFI_STATUS
 QemuVideoCompleteModeData (
@@ -89,49 +83,10 @@ QemuVideoCompleteModeData (
                             );
   DebugPrint(0, "FrameBufferBase: 0x%Lx, FrameBufferSize: 0x%Lx\n",
     Mode->FrameBufferBase, (UINT64)Mode->FrameBufferSize);
-  mset((UINT8*)Mode->FrameBufferBase, 0,  Mode->FrameBufferSize);
   //FreePool (FrameBufDesc);
   return EFI_SUCCESS;
 }
 
-STATIC
-EFI_STATUS
-QemuVideoVmwareSvgaCompleteModeData (
-  IN  QEMU_VIDEO_PRIVATE_DATA           *Private,
-  OUT EFI_GRAPHICS_OUTPUT_PROTOCOL_MODE *Mode
-  )
-{
-  EFI_STATUS                            Status;
-  EFI_GRAPHICS_OUTPUT_MODE_INFORMATION  *Info;
-  EFI_ACPI_ADDRESS_SPACE_DESCRIPTOR     *FrameBufDesc;
-  UINT32                                BytesPerLine, FbOffset, BytesPerPixel;
-
-  Info = Mode->Info;
-  CopyMem (Info, &Private->VmwareSvgaModeInfo[Mode->Mode], sizeof (*Info));
-  BytesPerPixel = Private->ModeData[Mode->Mode].ColorDepth / 8;
-  BytesPerLine = Info->PixelsPerScanLine * BytesPerPixel;
-
-  FbOffset = VmwareSvgaRead (Private, VmwareSvgaRegFbOffset);
-
-  Status = Private->PciIo->GetBarAttributes (
-                             Private->PciIo,
-                             PCI_BAR_IDX1,
-                             NULL,
-                             (VOID**) &FrameBufDesc
-                             );
-  if (EFI_ERROR (Status)) {
-    return EFI_DEVICE_ERROR;
-  }
-
-  Mode->FrameBufferBase = FrameBufDesc->AddrRangeMin + FbOffset;
-  Mode->FrameBufferSize = BytesPerLine * Info->VerticalResolution;
-  Mode->FrameBufferSize = EFI_PAGES_TO_SIZE (
-                            EFI_SIZE_TO_PAGES (Mode->FrameBufferSize)
-                            );
-
-  FreePool (FrameBufDesc);
-  return Status;
-}
 
 
 //
@@ -182,14 +137,10 @@ Routine Description:
 
   *SizeOfInfo = sizeof (EFI_GRAPHICS_OUTPUT_MODE_INFORMATION);
 
-  if (Private->Variant == QEMU_VIDEO_VMWARE_SVGA) {
-    CopyMem (*Info, &Private->VmwareSvgaModeInfo[ModeNumber], sizeof (**Info));
-  } else {
-    ModeData = &Private->ModeData[ModeNumber];
-    (*Info)->HorizontalResolution = ModeData->HorizontalResolution;
-    (*Info)->VerticalResolution   = ModeData->VerticalResolution;
-    QemuVideoCompleteModeInfo (ModeData, *Info);
-  }
+  ModeData = &Private->ModeData[ModeNumber];
+  (*Info)->HorizontalResolution = ModeData->HorizontalResolution;
+  (*Info)->VerticalResolution   = ModeData->VerticalResolution;
+  QemuVideoCompleteModeInfo (ModeData, *Info);
 
   return EFI_SUCCESS;
 }
@@ -200,22 +151,6 @@ QemuVideoGraphicsOutputSetMode (
   IN  EFI_GRAPHICS_OUTPUT_PROTOCOL *This,
   IN  UINT32                       ModeNumber
   )
-/*++
-
-Routine Description:
-
-  Graphics Output protocol interface to set video mode
-
-  Arguments:
-    This             - Protocol instance pointer.
-    ModeNumber       - The mode number to be set.
-
-  Returns:
-    EFI_SUCCESS      - Graphics mode was changed.
-    EFI_DEVICE_ERROR - The device had an error and could not complete the request.
-    EFI_UNSUPPORTED  - ModeNumber is not supported by this device.
-
---*/
 {
   QEMU_VIDEO_PRIVATE_DATA       *Private;
   QEMU_VIDEO_MODE_DATA          *ModeData;
@@ -230,38 +165,12 @@ Routine Description:
 
   ModeData = &Private->ModeData[ModeNumber];
 
-  switch (Private->Variant) {
-  case QEMU_VIDEO_CIRRUS_5430:
-  case QEMU_VIDEO_CIRRUS_5446:
-    InitializeCirrusGraphicsMode (Private, &QemuVideoCirrusModes[ModeData->InternalModeIndex]);
-    break;
-  case QEMU_VIDEO_BOCHS_MMIO:
-  case QEMU_VIDEO_BOCHS:
-    InitializeBochsGraphicsMode (Private, &QemuVideoBochsModes[ModeData->InternalModeIndex]);
-    break;
-  case QEMU_VIDEO_VMWARE_SVGA:
-    InitializeVmwareSvgaGraphicsMode (
-      Private,
-      &QemuVideoBochsModes[ModeData->InternalModeIndex]
-      );
-    break;
-  case QEMU_VIDEO_INTEL_HDG:
-     break;
-  default:
-    ASSERT (FALSE);
-    return EFI_DEVICE_ERROR;
-  }
-
   This->Mode->Mode = ModeNumber;
   This->Mode->Info->HorizontalResolution = ModeData->HorizontalResolution;
   This->Mode->Info->VerticalResolution = ModeData->VerticalResolution;
   This->Mode->SizeOfInfo = sizeof(EFI_GRAPHICS_OUTPUT_MODE_INFORMATION);
 
-  if (Private->Variant == QEMU_VIDEO_VMWARE_SVGA) {
-    QemuVideoVmwareSvgaCompleteModeData (Private, This->Mode);
-  } else {
-    QemuVideoCompleteModeData (Private, This->Mode);
-  }
+  QemuVideoCompleteModeData (Private, This->Mode);
 
   //
   // Re-initialize the frame buffer configure when mode changes.
@@ -443,12 +352,6 @@ DebugPrint(0, "\n QemuVideoGraphicsOutputConstructor  setting mode\n");
   if (EFI_ERROR (Status)) {
     goto FreeInfo;
   }
-
-  DrawLogo (
-    Private,
-    Private->ModeData[Private->GraphicsOutput.Mode->Mode].HorizontalResolution,
-    Private->ModeData[Private->GraphicsOutput.Mode->Mode].VerticalResolution
-    );
 
   return EFI_SUCCESS;
 
