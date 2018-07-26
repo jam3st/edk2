@@ -758,6 +758,7 @@
   OvmfPkg/QemuRamfbDxe/QemuRamfbDxe.inf
   OvmfPkg/VirtioGpuDxe/VirtioGpu.inf
 
+  OvmfPkg/GmaVideoDxe/GmaVideoDxe.inf
   #
   # ISA Support
   #

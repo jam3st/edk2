@@ -1,0 +1,66 @@
+## @file
+#  This driver is a sample implementation of the Graphics Output Protocol for
+#  the QEMU (Cirrus Logic 5446) video controller.
+#
+#  Copyright (c) 2006 - 2018, Intel Corporation. All rights reserved.<BR>
+#
+#  This program and the accompanying materials
+#  are licensed and made available under the terms and conditions of the BSD License
+#  which accompanies this distribution. The full text of the license may be found at
+#  http://opensource.org/licenses/bsd-license.php
+#
+#  THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
+#
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = GmaVideoDxe
+  FILE_GUID                      = e3752948-b9a1-4770-90c4-df41c38986be
+  MODULE_TYPE                    = UEFI_DRIVER
+  VERSION_STRING                 = 1.0
+
+  ENTRY_POINT                    = InitializeGmaVideo
+
+
+[Sources.common]
+  Driver.c
+  DriverSupportedEfiVersion.c
+  Gop.c
+  Initialize.c
+  Gma.c
+
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  OptionRomPkg/OptionRomPkg.dec
+  OvmfPkg/OvmfPkg.dec
+
+[LibraryClasses]
+  BaseMemoryLib
+  FrameBufferBltLib
+  DebugLib
+  DevicePathLib
+  MemoryAllocationLib
+  PcdLib
+  PciLib
+  PrintLib
+  TimerLib
+  UefiBootServicesTableLib
+  UefiDriverEntryPoint
+  UefiLib
+  HdGfxLib
+
+[Protocols]
+  gEfiDriverSupportedEfiVersionProtocolGuid     # PROTOCOL ALWAYS_PRODUCED
+  gEfiGraphicsOutputProtocolGuid                # PROTOCOL BY_START
+  gEfiDevicePathProtocolGuid                    # PROTOCOL BY_START
+  gEfiPciIoProtocolGuid                         # PROTOCOL TO_START
+  gEfiCpuArchProtocolGuid
+
+[Pcd]
+  gOptionRomPkgTokenSpaceGuid.PcdDriverSupportedEfiVersion
+  gUefiOvmfPkgTokenSpaceGuid.PcdOvmfHostBridgePciDevId
+  gEfiMdeModulePkgTokenSpaceGuid.PcdNullPointerDetectionPropertyMask
